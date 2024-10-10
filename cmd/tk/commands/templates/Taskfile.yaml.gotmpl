@@ -1,0 +1,11 @@
+version: '3'
+
+includes:
+    {{ range $i, $task := .Tasks }}
+        {{- $task.Name }}: {{ $task.Filename }}
+    {{end}}
+
+dotenv:
+  - .env
+  - PROJECT
+  - .env.default

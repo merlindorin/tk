@@ -17,8 +17,12 @@ tasks:
       Examples:
         - `task` will run all default tasks if you use default as prefix
         - `task {{.TASK}}` will explicitly run all default tasks
+      
+      Note:
+        You can add any extra to all default commands by using "--". For example `task -- -f` to force all update.
     vars:
       PATTERN: '{{.PATTERN | default .DEFAULT_DEFAULT_PATTERN}}'
 
     # this one-line is pretty scary
-    cmd: task -a --json | jq -c '[ (.tasks[] | select( .name | test({{.PATTERN | quote}})) | select( .name | index({{.TASK | quote}}) | not) ) | .name] | .[]' | xargs -n 1 -L1 -I'{}' sh -c 'task {} || exit 255'
+    cmds:
+      - cmd: task -a --json | jq -c '[ (.tasks[] | select( .name | test({{.PATTERN | quote}})) | select( .name | index({{.TASK | quote}}) | not) ) | .name] | .[]' | xargs -n 1 -L1 -I'{}' sh -c 'task {} {{.CLI_ARGS}} || exit 255'

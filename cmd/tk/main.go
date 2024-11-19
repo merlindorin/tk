@@ -4,9 +4,9 @@ import (
 	_ "embed"
 
 	"github.com/alecthomas/kong"
+	"github.com/merlindorin/go-shared/pkg/cmd"
 	"github.com/merlindorin/tk/cmd/tk/commands"
 	"github.com/merlindorin/tk/cmd/tk/global"
-	"github.com/vanyda-official/go-shared/pkg/cmd"
 )
 
 //nolint:gochecknoglobals // these global variables exist to be overridden during build
@@ -24,9 +24,10 @@ type CLI struct {
 	*cmd.Commons
 	*cmd.Config
 
-	*global.Taskfiles
+	*global.TK
 
-	Init commands.InitCmd `cmd:"init" help:"initialize a new workspace"`
+	Init   commands.InitCmd   `cmd:"init" help:"initialize a new workspace"`
+	Update commands.UpdateCmd `cmd:"update" help:"update workspace"`
 }
 
 func main() {
@@ -35,8 +36,8 @@ func main() {
 			Version: cmd.NewVersion(name, version, commit, buildSource, date),
 			Licence: cmd.NewLicence(license),
 		},
-		Config:    cmd.NewConfig(name),
-		Taskfiles: &global.Taskfiles{},
+		Config: cmd.NewConfig(name),
+		TK:     &global.TK{},
 	}
 
 	ctx := kong.Parse(
@@ -46,5 +47,5 @@ func main() {
 		kong.UsageOnError(),
 	)
 
-	ctx.FatalIfErrorf(ctx.Run(cli.Taskfiles, cli.Commons))
+	ctx.FatalIfErrorf(ctx.Run(cli.TK, cli.Commons))
 }

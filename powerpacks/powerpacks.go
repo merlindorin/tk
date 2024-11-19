@@ -26,7 +26,8 @@ func BuildPowerpackManager() (*ps.Manager, error) {
 
 		if powerpacks[powerpackName] == nil {
 			powerpacks[powerpackName] = &ps.Powerpack{
-				Name: powerpackName,
+				Name:   powerpackName,
+				Target: dir,
 			}
 		}
 

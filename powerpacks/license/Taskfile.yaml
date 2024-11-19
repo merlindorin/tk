@@ -45,5 +45,9 @@ tasks:
       FILENAME: '{{.LICENSE_FILENAME | default .DEFAULT_LICENSE_FILENAME}}'
       YEAR: '{{.LICENSE_YEAR | default .DEFAULT_LICENSE_YEAR}}'
       PROJECT: '{{.LICENSE_PROJECT | default .DEFAULT_LICENSE_PROJECT}}'
+
+    status:
+      - test -f '{{ .FILENAME }}'
+
     cmds:
       - aqua exec license -n "{{.NAME}}" -y "{{.YEAR}}" {{if .PROJECT }}-p "{{.PROJECT}}"{{end}} -o {{.FILENAME}} {{.TYPE}}

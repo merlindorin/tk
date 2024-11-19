@@ -1,4 +1,4 @@
 package global
 
-type Taskfiles struct {
+type TK struct {
 }

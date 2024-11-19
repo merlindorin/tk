@@ -10,8 +10,6 @@ tasks:
     cmd:
       task: lint
 
-
-
   pre-commit:
     cmd:
       task: default
@@ -70,9 +68,11 @@ tasks:
       The generated file should be excluded from commits.
 
     status:
-      - 'test -f "{{.CONFIG_FILENAME}}"'
+      - test -f "{{.CONFIG_FILENAME}}"
+
     vars:
       CONFIG_FILENAME: '{{.CONFIG_FILENAME | default .DEFAULT_MARKDOWNLINT_CONFIG_FILENAME}}'
+
     cmds:
       - echo "${CONFIG_CONTENT}" > "{{.CONFIG_FILENAME}}"
     env:

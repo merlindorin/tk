@@ -4,7 +4,7 @@
 [![Test Status](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml)
 [![Test Status](https://github.com/merlindorin/tk/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/trufflehog.yml)
 
-Welcome to `tk`, a command-line interface (CLI) designed to streamline the installation of tools for your projects.
+> Welcome to `tk`, a command-line interface (CLI) designed to streamline the installation of tools for your projects.
 Managed by [merlindorin](https://github.com/merlindorin), this project offers simplicity and efficiency by using
 powerpacks that bundle necessary configurations for Taskfile and Aquafiles.
 

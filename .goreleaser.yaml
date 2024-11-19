@@ -39,7 +39,7 @@ gomod:
 # https://goreleaser.com/customization/checksum
 
 checksum:
-  name_template: '{{ .ProjectName }}-{{ .Version }}-checksums.txt'
+  name_template: '{{ .ProjectName }}_{{ .Version }}-checksums.txt'
 
 # create a source tarball
 # https://goreleaser.com/customization/source/

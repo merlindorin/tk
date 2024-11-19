@@ -8,6 +8,7 @@ import (
 type Powerpack struct {
 	Name        string
 	Description string
+	Target      string
 	Readme      io.Reader
 	Taskfile    io.Reader
 	Aqua        io.Reader

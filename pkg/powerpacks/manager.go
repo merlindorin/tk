@@ -6,6 +6,9 @@ import (
 	"html/template"
 	"os"
 	"path/filepath"
+	"slices"
+
+	"gopkg.in/yaml.v3"
 )
 
 var (
@@ -38,9 +41,10 @@ func (p *Manager) List(l *[]Powerpack) {
 }
 
 type WriteOption struct {
-	IgnoreReadme   bool
-	IgnoreAqua     bool
-	IgnoreTaskfile bool
+	IgnoreReadme   bool     `yaml:"ignore_readme"`
+	IgnoreAqua     bool     `yaml:"ignore_aqua"`
+	IgnoreTaskfile bool     `yaml:"ignore_taskfile"`
+	Excludes       []string `yaml:"excludes"`
 }
 
 func (p *Manager) Write(target string, options WriteOption) error {
@@ -63,7 +67,16 @@ func (p *Manager) Write(target string, options WriteOption) error {
 	taskfiles := map[string]string{}
 	aquafiles := map[string]string{}
 
+	err = writeConfig(target, options)
+	if err != nil {
+		return fmt.Errorf("failed to write config: %w", err)
+	}
+
 	for name, powerpack := range p.powerpacks {
+		if slices.Index(options.Excludes, name) != -1 {
+			continue
+		}
+
 		err = os.MkdirAll(filepath.Join(target, ".tk", name), os.ModePerm)
 		if err != nil {
 			return fmt.Errorf("failed to create directory %s: %w", name, err)
@@ -108,6 +121,23 @@ func (p *Manager) Write(target string, options WriteOption) error {
 	return err
 }
 
+func writeConfig(target string, config WriteOption) error {
+	f, err := os.Create(filepath.Join(target, ".tk.yaml"))
+	if err != nil {
+		return fmt.Errorf("failed to create config: %w", err)
+	}
+
+	defer func() {
+		err = errors.Join(err, f.Close())
+	}()
+
+	err = yaml.NewEncoder(f).Encode(config)
+	if err != nil {
+		return fmt.Errorf("failed to encode config: %w", err)
+	}
+
+	return err
+}
 func processAqua(target string, aquaTmpl *template.Template, aquafiles map[string]string) error {
 	f, er := os.Create(filepath.Join(target, "aqua.yaml"))
 	if er != nil {
@@ -203,13 +233,9 @@ func writeReadme(target string, name string, err error, powerpack *Powerpack) er
 }
 
 func EnsureFileExist(target string) (*os.File, error) {
-	info, err := os.Stat(target)
+	err := os.RemoveAll(filepath.Join(target, ".tk"))
 	if err != nil {
-		return nil, fmt.Errorf("failed to stat %s: %w", target, err)
-	}
-
-	if !info.IsDir() {
-		return nil, fmt.Errorf("%s is not a directory", target)
+		return nil, fmt.Errorf("failed to remove %s: %w", target, err)
 	}
 
 	if er := os.MkdirAll(filepath.Join(target, ".tk"), os.ModePerm); er != nil {

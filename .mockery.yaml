@@ -1,0 +1,10 @@
+filename: "mock_{{.InterfaceName}}.go"
+dir: "{{.InterfaceDir}}"
+mockname: "Mock{{.InterfaceName}}"
+outpkg: "{{.PackageName}}"
+inpackage: True
+all: True
+packages:
+  github.com/merlindorin/tk:
+    config:
+      recursive: True

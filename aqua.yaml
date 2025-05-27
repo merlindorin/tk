@@ -13,8 +13,4 @@ registries:
 packages:
   - name: go-task/task@v3.38.0
   - name: jqlang/jq@jq-1.7.1
-  - import: .tk/golangci/aqua.yaml
-  - import: .tk/goreleaser/aqua.yaml
-  - import: .tk/license/aqua.yaml
-  - import: .tk/trufflehog/aqua.yaml
   

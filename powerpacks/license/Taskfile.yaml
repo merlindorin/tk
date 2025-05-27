@@ -1,6 +1,9 @@
 version: '3'
 
 vars:
+  DEFAULT_GO_BIN: 'go'
+  DEFAULT_LICENSE_BIN_NAME: 'go tool license'
+  DEFAULT_LICENSE_VERSION: 'v5.0.4'
   DEFAULT_LICENSE_TYPE: 'mit'
   DEFAULT_LICENSE_FILENAME: 'LICENSE.md'
   DEFAULT_LICENSE_NAME:
@@ -18,6 +21,45 @@ tasks:
   pre-commit:
     cmd:
       task: default
+
+  run:
+    desc: Run license
+    vars:
+      BIN_NAME: '{{ .BIN_NAME | default .DEFAULT_LICENSE_BIN_NAME }}'
+      LICENSE_ARGS: '{{ .LICENSE_ARGS | default .DEFAULT_LICENSE_ARGS }}'
+    summary: |
+      Run License. The purpose is to have a reusable way to run License.
+
+      The following variables are available:
+
+      | VARIABLE            | DESCRIPTION               | DEFAULT |
+      |---------------------|---------------------------|---------|
+      | `LICENSE_ARGS`     | license arguments        | `{{ .DEFAULT_LICENSE_ARGS }}` |
+      | `BIN_NAME` | license bin name         | `{{ .DEFAULT_LICENSE_BIN_NAME }}` |
+
+      Usual environment variables used for building a golang application are obviously available like:
+        - `GOOS` for setting the build OS
+        - `GOARCH` for setting the build architecture
+
+      Extra arguments can be provided using `--` (non exclusive with `LICENSE_ARGS`).
+
+      Examples:
+        - `SOURCES=./cmd/... task {{ .TASK }}` is similar to `license-lint`
+        - `task {{ .TASK }} -- -v` is similar to `license-lint -v`
+        - `LICENSE_ARGS="-v" task {{ .TASK }}` is similar to `license-lint -v`
+
+    cmd: '{{.BIN_NAME }} {{.LICENSE_ARGS}} {{.CLI_ARGS}}'
+
+  install:
+    vars:
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      VERSION: '{{.VERSION | default .DEFAULT_LICENSE_VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool github.com/nishanths/license/v5@{{.VERSION}}'
+
+  uninstall:
+    vars:
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+    cmd: '{{.GO_BIN}} get -tool github.com/nishanths/license/v5@none'
 
   generate:
     desc: Generate License
@@ -49,5 +91,7 @@ tasks:
     status:
       - test -f '{{ .FILENAME }}'
 
-    cmds:
-      - aqua exec license -n "{{.NAME}}" -y "{{.YEAR}}" {{if .PROJECT }}-p "{{.PROJECT}}"{{end}} -o {{.FILENAME}} {{.TYPE}}
+    cmd:
+      task: run
+      vars:
+        CLI_ARGS: '-n "{{.NAME}}" -y "{{.YEAR}}" {{if .PROJECT }}-p "{{.PROJECT}}"{{end}} -o {{.FILENAME}} {{.TYPE}}'

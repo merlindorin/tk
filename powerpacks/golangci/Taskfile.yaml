@@ -1,7 +1,9 @@
 version: '3'
 
 vars:
-  DEFAULT_GOLANGCI_BIN_NAME: '{{ .BIN_NAME | default "golangci-lint" }}'
+  DEFAULT_GO_BIN: 'go1.24'
+  DEFAULT_GOLANGCI_BIN_NAME: 'go tool golangci-lint'
+  DEFAULT_GOLANGCI_VERSION: 'v1.62.2'
   DEFAULT_GOLANGCI_GITHUBACTION_FILENAME: 'golangci.yml'
   DEFAULT_GOLANGCI_CONFIG_FILENAME: '.golangci.yaml'
   DEFAULT_GOLANGCI_SOURCES: '{{ .DEFAULT_GO_SOURCES | default "./..." }}'
@@ -17,6 +19,45 @@ tasks:
   pre-commit:
     cmd:
       task: default
+
+  run:
+    desc: Run golangci
+    vars:
+      BIN_NAME: '{{ .BIN_NAME | default .DEFAULT_GOLANGCI_BIN_NAME }}'
+      GOLANGCI_ARGS: '{{ .GOLANGCI_ARGS | default .DEFAULT_GOLANGCI_ARGS }}'
+    summary: |
+      Run Golangci. The purpose is to have a reusable way to run Golangci.
+
+      The following variables are available:
+
+      | VARIABLE            | DESCRIPTION               | DEFAULT |
+      |---------------------|---------------------------|---------|
+      | `GOLANGCI_ARGS`     | golangci arguments        | `{{ .DEFAULT_GOLANGCI_ARGS }}` |
+      | `BIN_NAME` | golangci bin name         | `{{ .DEFAULT_GOLANGCI_BIN_NAME }}` |
+
+      Usual environment variables used for building a golang application are obviously available like:
+        - `GOOS` for setting the build OS
+        - `GOARCH` for setting the build architecture
+
+      Extra arguments can be provided using `--` (non exclusive with `GOLANGCI_ARGS`).
+
+      Examples:
+        - `SOURCES=./cmd/... task {{ .TASK }}` is similar to `golangci-lint`
+        - `task {{ .TASK }} -- -v` is similar to `golangci-lint -v`
+        - `GOLANGCI_ARGS="-v" task {{ .TASK }}` is similar to `golangci-lint -v`
+
+    cmd: '{{.BIN_NAME }} {{.GOLANGCI_ARGS}} {{.CLI_ARGS}}'
+
+  install:
+    vars:
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      VERSION: '{{.VERSION | default .DEFAULT_GOLANGCI_VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@{{.VERSION}}'
+
+  uninstall:
+    vars:
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+    cmd: '{{.GO_BIN}} get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@none'
 
   lint:
     desc: Lint golang source
@@ -52,35 +93,6 @@ tasks:
       - task: lint
         vars:
           CLI_ARGS: '--fix'
-
-  run:
-    desc: Run golang-ci
-    vars:
-      BIN_NAME: '{{ .BIN_NAME | default .DEFAULT_GOLANGCI_BIN_NAME }}'
-      GOLANGCI_ARGS: '{{ .GOLANGCI_ARGS | default .DEFAULT_GOLANGCI_ARGS }}'
-    summary: |
-      Run Golangci. The purpose is to have a reusable way to run Golangci.
-
-      The following variables are available:
-
-      | VARIABLE            | DESCRIPTION               | DEFAULT |
-      |---------------------|---------------------------|---------|
-      | `GOLANGCI_ARGS`     | golangci arguments        | `{{ .DEFAULT_GOLANGCI_ARGS }}` |
-      | `BIN_NAME` | golangci bin name         | `{{ .DEFAULT_GOLANGCI_BIN_NAME }}` |
-
-      Usual environment variables used for building a golang application are obviously available like:
-        - `GOOS` for setting the build OS
-        - `GOARCH` for setting the build architecture
-
-      Extra arguments can be provided using `--` (non exclusive with `GOLANGCI_ARGS`).
-
-      Examples:
-        - `SOURCES=./cmd/... task {{ .TASK }}` is similar to `golangci-lint`
-        - `task {{ .TASK }} -- -v` is similar to `golangci-lint -v`
-        - `GOLANGCI_ARGS="-v" task {{ .TASK }}` is similar to `golangci-lint -v`
-
-    cmds:
-      - aqua exec {{.BIN_NAME }} {{.GOLANGCI_ARGS}} {{.CLI_ARGS}}
 
   ci:
     desc: Generate GitHub Action

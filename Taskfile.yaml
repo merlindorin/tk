@@ -6,7 +6,6 @@ includes:
     golangci: .tk/golangci/Taskfile.yaml
     goreleaser: .tk/goreleaser/Taskfile.yaml
     license: .tk/license/Taskfile.yaml
-    markdownlint: .tk/markdownlint/Taskfile.yaml
     trufflehog: .tk/trufflehog/Taskfile.yaml
     
 

@@ -5,6 +5,7 @@ includes:
     git: .tk/git/Taskfile.yaml
     golangci: .tk/golangci/Taskfile.yaml
     goreleaser: .tk/goreleaser/Taskfile.yaml
+    install: .tk/install/Taskfile.yaml
     license: .tk/license/Taskfile.yaml
     trufflehog: .tk/trufflehog/Taskfile.yaml
     

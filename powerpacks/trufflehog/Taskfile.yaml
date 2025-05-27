@@ -2,8 +2,9 @@ version: '3'
 
 vars:
   DEFAULT_GO_BIN: 'go'
-  DEFAULT_TRUFFLEHOG_BIN_NAME: 'go tool trufflehog'
-  DEFAULT_TRUFFLEHOG_VERSION: 'v3.87.0'
+  DEFAULT_TRUFFLEHOG_PACKAGE: 'github.com/trufflesecurity/trufflehog/v3'
+  DEFAULT_TRUFFLEHOG_BIN_NAME: 'trufflehog'
+  DEFAULT_TRUFFLEHOG_VERSION: 'latest'
   DEFAULT_TRUFFLEHOG_GITHUBACTION_FILENAME: '{{ .ROOT_DIR }}/.github/workflows/trufflehog.yml'
 
 tasks:
@@ -42,18 +43,22 @@ tasks:
         - `task {{ .TASK }} -- -v` is similar to `trufflehog-lint -v`
         - `TRUFFLEHOG_ARGS="-v" task {{ .TASK }}` is similar to `trufflehog-lint -v`
 
-    cmd: '{{.BIN_NAME }} {{.TRUFFLEHOG_ARGS}} {{.CLI_ARGS}}'
+    cmd: 'go tool {{.BIN_NAME }} {{.TRUFFLEHOG_ARGS}} {{.CLI_ARGS}}'
 
   install:
     vars:
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_TRUFFLEHOG_PACKAGE}}'
       VERSION: '{{.VERSION | default .DEFAULT_TRUFFLEHOG_VERSION}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/trufflesecurity/trufflehog/v3@{{.VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@{{.VERSION}}'
+    status:
+      - go tool | grep {{.PACKAGE}}
 
   uninstall:
     vars:
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_TRUFFLEHOG_PACKAGE}}'
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/trufflesecurity/trufflehog/v3@none'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@none'
 
   local:
     desc: Detect secret leak in current repository

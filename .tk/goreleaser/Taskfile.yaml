@@ -1,7 +1,10 @@
 version: '3'
 
 vars:
-  DEFAULT_GORELEASER_BIN_NAME:
+  DEFAULT_GORELEASER_VERSION: 'latest'
+  DEFAULT_GORELEASER_PACKAGE: 'github.com/goreleaser/goreleaser/v2'
+  DEFAULT_GORELEASER_BIN_NAME: 'goreleaser'
+  DEFAULT_GORELEASER_OUT_BIN_NAME:
     sh: gh repo view --json name -q ".name"
   DEFAULT_GORELEASER_DOCKER_REGISTRY:
     sh: echo "ghcr.io/$(gh repo view --json owner -q '.owner.login')/$(gh repo view --json name -q '.name')"
@@ -34,7 +37,7 @@ tasks:
       INSTALL_SCRIPT_FILENAME: '{{.INSTALL_SCRIPT_FILENAME | default .DEFAULT_GORELEASER_INSTALL_SCRIPT_FILENAME}}'
       GITHUB_OWNER: '{{ .GITHUB_OWNER | default .DEFAULT_GORELEASER_GITHUB_OWNER }}'
       GITHUB_REPOSITORY: '{{ .GITHUB_REPOSITORY | default .DEFAULT_GORELEASER_GITHUB_REPOSITORY }}'
-      BIN_NAME: '{{ .BIN_NAME | default .DEFAULT_GORELEASER_BIN_NAME }}'
+      BIN_NAME: '{{ .BIN_NAME | default .DEFAULT_GORELEASER_OUT_BIN_NAME }}'
     cmds:
       - echo "${INSTALL_SCRIPT_CONTENT}" > "{{.INSTALL_SCRIPT_FILENAME}}"
     status:
@@ -488,6 +491,7 @@ tasks:
       | VARIABLE            | DESCRIPTION               | DEFAULT |
       |---------------------|---------------------------|---------|
       | `GORELEASER_ARGS`   | goreleaser arguments      | `{{ .DEFAULT_GORELEASER_ARGS }}` |
+      | `BIN_NAME` | goreleaser bin name         | `{{ .DEFAULT_GORELEASER_BIN_NAME }}` |
 
       Usual environment variables used for building a golang application are obviously available like:
         - `GOOS` for setting the build OS
@@ -500,8 +504,22 @@ tasks:
         - `task {{ .TASK }} -- -v` is similar to `goreleaser -v`
         - `GORELEASER_ARGS="-v" task {{ .TASK }}` is similar to `goreleaser -v`
 
-    cmds:
-      - aqua exec {{ .BIN_NAME }} {{.GORELEASER_ARGS}} {{.CLI_ARGS}}
+    cmd: 'go tool {{.BIN_NAME }} {{.GORELEASER_ARGS}} {{.CLI_ARGS}}'
+
+  install:
+    vars:
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_GORELEASER_PACKAGE}}'
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      VERSION: '{{.VERSION | default .DEFAULT_GORELEASER_VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@{{.VERSION}}'
+    status:
+      - go tool | grep {{.PACKAGE}}
+
+  uninstall:
+    vars:
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_GORELEASER_PACKAGE}}'
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@none'
 
   ci:
     desc: Generate GitHub Action

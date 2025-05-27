@@ -13,7 +13,6 @@ import (
 
 var (
 	ErrMissingTaskfile = fmt.Errorf("missing taskfile for Powerpack")
-	ErrMissingAqua     = fmt.Errorf("missing aqua for Powerpack")
 )
 
 type Manager struct {
@@ -42,7 +41,6 @@ func (p *Manager) List(l *[]Powerpack) {
 
 type WriteOption struct {
 	IgnoreReadme   bool     `yaml:"ignore_readme"`
-	IgnoreAqua     bool     `yaml:"ignore_aqua"`
 	IgnoreTaskfile bool     `yaml:"ignore_taskfile"`
 	Excludes       []string `yaml:"excludes"`
 }
@@ -52,7 +50,6 @@ func (p *Manager) Write(target string, options WriteOption) error {
 
 	envrcTmpl := template.Must(template.New("envrc").Parse(envrcTemplate))
 	taskfileTmpl := template.Must(template.New("taskfile").Parse(taskfileTemplate))
-	aquaTmpl := template.Must(template.New("aqua").Parse(aquaTemplate))
 
 	file, err := EnsureFileExist(target)
 	if err != nil {
@@ -65,7 +62,6 @@ func (p *Manager) Write(target string, options WriteOption) error {
 	}
 
 	taskfiles := map[string]string{}
-	aquafiles := map[string]string{}
 
 	err = writeConfig(target, options)
 	if err != nil {
@@ -95,24 +91,10 @@ func (p *Manager) Write(target string, options WriteOption) error {
 				return err
 			}
 		}
-
-		if !options.IgnoreAqua && powerpack.Aqua != nil {
-			err = listAqua(target, name, powerpack, aquafiles)
-			if err != nil {
-				return err
-			}
-		}
 	}
 
 	if !options.IgnoreTaskfile {
 		err = processTaskfile(target, taskfileTmpl, taskfiles)
-		if err != nil {
-			return err
-		}
-	}
-
-	if !options.IgnoreAqua {
-		err = processAqua(target, aquaTmpl, aquafiles)
 		if err != nil {
 			return err
 		}
@@ -138,18 +120,6 @@ func writeConfig(target string, config WriteOption) error {
 
 	return err
 }
-func processAqua(target string, aquaTmpl *template.Template, aquafiles map[string]string) error {
-	f, er := os.Create(filepath.Join(target, "aqua.yaml"))
-	if er != nil {
-		return fmt.Errorf("cannot open aqua: %w", er)
-	}
-
-	er = aquaTmpl.Execute(f, aquafiles)
-	if er != nil {
-		return fmt.Errorf("cannot render template: %w", er)
-	}
-	return nil
-}
 
 func processTaskfile(target string, taskfileTmpl *template.Template, taskfiles map[string]string) error {
 	f, er := os.Create(filepath.Join(target, "Taskfile.yaml"))
@@ -162,34 +132,6 @@ func processTaskfile(target string, taskfileTmpl *template.Template, taskfiles m
 		return fmt.Errorf("cannot render template: %w", er)
 	}
 	return nil
-}
-
-func listAqua(target string, name string, powerpack *Powerpack, aquafiles map[string]string) error {
-	filename := filepath.Join(target, ".tk", name, "aqua.yaml")
-
-	f, err := os.Create(filename)
-	defer func(f *os.File) {
-		err = errors.Join(err, f.Close())
-	}(f)
-
-	if err != nil {
-		return fmt.Errorf("failed to open file %s: %w", filename, err)
-	}
-
-	er := powerpack.WriteAqua(f)
-	if er != nil && !errors.Is(er, ErrMissingAqua) {
-		return fmt.Errorf("failed to write file %s: %w", filename, err)
-	}
-
-	if errors.Is(er, ErrMissingAqua) {
-		return nil
-	}
-
-	if err == nil {
-		aquafiles[name] = filename
-	}
-
-	return err
 }
 
 func listTaskfile(target string, name string, powerpack *Powerpack, taskfiles map[string]string) error {

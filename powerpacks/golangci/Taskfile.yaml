@@ -2,8 +2,9 @@ version: '3'
 
 vars:
   DEFAULT_GO_BIN: 'go'
-  DEFAULT_GOLANGCI_BIN_NAME: 'go tool golangci-lint'
-  DEFAULT_GOLANGCI_VERSION: 'v1.62.2'
+  DEFAULT_GOLANGCI_PACKAGE: 'github.com/golangci/golangci-lint/cmd/golangci-lint'
+  DEFAULT_GOLANGCI_BIN_NAME: 'golangci-lint'
+  DEFAULT_GOLANGCI_VERSION: 'latest'
   DEFAULT_GOLANGCI_GITHUBACTION_FILENAME: 'golangci.yml'
   DEFAULT_GOLANGCI_CONFIG_FILENAME: '.golangci.yaml'
   DEFAULT_GOLANGCI_SOURCES: '{{ .DEFAULT_GO_SOURCES | default "./..." }}'
@@ -13,7 +14,6 @@ tasks:
   default:
     cmds:
       - task: boilerplate
-      - task: install
       - task: lint
       - task: ci
 
@@ -47,18 +47,22 @@ tasks:
         - `task {{ .TASK }} -- -v` is similar to `golangci-lint -v`
         - `GOLANGCI_ARGS="-v" task {{ .TASK }}` is similar to `golangci-lint -v`
 
-    cmd: '{{.BIN_NAME }} {{.GOLANGCI_ARGS}} {{.CLI_ARGS}}'
+    cmd: 'go tool {{.BIN_NAME }} {{.GOLANGCI_ARGS}} {{.CLI_ARGS}}'
 
   install:
     vars:
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_GOLANGCI_PACKAGE}}'
       VERSION: '{{.VERSION | default .DEFAULT_GOLANGCI_VERSION}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@{{.VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@{{.VERSION}}'
+    status:
+      - go tool | grep {{.PACKAGE}}
 
   uninstall:
     vars:
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_GOLANGCI_PACKAGE}}'
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/golangci/golangci-lint/cmd/golangci-lint@none'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@none'
 
   lint:
     desc: Lint golang source
@@ -130,7 +134,7 @@ tasks:
           golangci:
             strategy:
               matrix:
-                go: ['1.21']
+                go: ['1.24']
                 os: [macos-latest, ubuntu-latest]
             name: lint
             runs-on: ${{ "{{ matrix.os }}" }}
@@ -141,12 +145,12 @@ tasks:
                   go-version: ${{ "{{ matrix.go }}" }}
                   cache: false
               - name: golangci-lint
-                uses: golangci/golangci-lint-action@v3
+                uses: golangci/golangci-lint-action@v8
                 with:
                   # Require: The version of golangci-lint to use.
                   # When `install-mode` is `binary` (default) the value can be v1.2 or v1.2.3 or `latest` to use the latest version.
                   # When `install-mode` is `goinstall` the value can be v1.2.3, `latest`, or the hash of a commit.
-                  version: v1.61
+                  version: latest
         
                   # Optional: working directory, useful for monorepos
                   # working-directory: somedir
@@ -361,7 +365,7 @@ tasks:
             - durationcheck # checks for two durations multiplied together
             - errname # checks that sentinel errors are prefixed with the Err and error types are suffixed with the Error
             - errorlint # finds code that will cause problems with the error wrapping scheme introduced in Go 1.13
-            
+        
             # deprecated
             # - execinquery # checks query string in Query function which reads your Go src files and warning it finds
             - exhaustive # checks exhaustiveness of enum switch statements

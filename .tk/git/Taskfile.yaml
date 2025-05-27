@@ -7,7 +7,6 @@ vars:
 tasks:
   default:
     cmds:
-      - task: install
       - task: gitignore
 
   gitignore:

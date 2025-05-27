@@ -2,8 +2,9 @@ version: '3'
 
 vars:
   DEFAULT_GO_BIN: 'go'
-  DEFAULT_LICENSE_BIN_NAME: 'go tool license'
-  DEFAULT_LICENSE_VERSION: 'v5.0.4'
+  DEFAULT_LICENSE_PACKAGE: 'github.com/nishanths/license/v5'
+  DEFAULT_LICENSE_BIN_NAME: 'license'
+  DEFAULT_LICENSE_VERSION: 'latest'
   DEFAULT_LICENSE_TYPE: 'mit'
   DEFAULT_LICENSE_FILENAME: 'LICENSE.md'
   DEFAULT_LICENSE_NAME:
@@ -15,8 +16,8 @@ vars:
 
 tasks:
   default:
-    cmd:
-      task: generate
+    cmds:
+      - task: generate
 
   pre-commit:
     cmd:
@@ -48,18 +49,22 @@ tasks:
         - `task {{ .TASK }} -- -v` is similar to `license-lint -v`
         - `LICENSE_ARGS="-v" task {{ .TASK }}` is similar to `license-lint -v`
 
-    cmd: '{{.BIN_NAME }} {{.LICENSE_ARGS}} {{.CLI_ARGS}}'
+    cmd: 'go tool {{.BIN_NAME }} {{.LICENSE_ARGS}} {{.CLI_ARGS}}'
 
   install:
     vars:
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_LICENSE_PACKAGE}}'
       VERSION: '{{.VERSION | default .DEFAULT_LICENSE_VERSION}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/nishanths/license/v5@{{.VERSION}}'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@{{.VERSION}}'
+    status:
+      - go tool | grep {{.PACKAGE}}
 
   uninstall:
     vars:
+      PACKAGE: '{{.PACKAGE | default .DEFAULT_LICENSE_PACKAGE}}'
       GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
-    cmd: '{{.GO_BIN}} get -tool github.com/nishanths/license/v5@none'
+    cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@none'
 
   generate:
     desc: Generate License

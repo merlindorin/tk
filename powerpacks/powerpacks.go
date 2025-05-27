@@ -39,8 +39,6 @@ func BuildPowerpackManager() (*ps.Manager, error) {
 		switch filename {
 		case "Taskfile.yaml":
 			powerpacks[powerpackName].Taskfile = fsource
-		case "aqua.yaml":
-			powerpacks[powerpackName].Aqua = fsource
 		case "README.md":
 			powerpacks[powerpackName].Readme = fsource
 		}

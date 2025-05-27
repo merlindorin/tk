@@ -15,7 +15,6 @@ type InitCmd struct {
 
 	DisableEnvrc     bool `default:"false" help:"disable envrc"`
 	DisableTaskfiles bool `default:"false" help:"disable taskfiles"`
-	DisableAqua      bool `default:"false" help:"disable aqua"`
 	DisableReadme    bool
 }
 
@@ -26,7 +25,6 @@ func (i *InitCmd) Run(_ *cmd.Commons) error {
 	}
 
 	opts := ps.WriteOption{
-		IgnoreAqua:     i.DisableAqua,
 		IgnoreTaskfile: i.DisableTaskfiles,
 		IgnoreReadme:   i.DisableReadme,
 		Excludes:       i.Exclude,

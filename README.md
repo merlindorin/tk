@@ -6,7 +6,7 @@
 
 > Welcome to `tk`, a command-line interface (CLI) designed to streamline the installation of tools for your projects.
 Managed by [merlindorin](https://github.com/merlindorin), this project offers simplicity and efficiency by using
-powerpacks that bundle necessary configurations for Taskfile and Aquafiles.
+powerpacks that bundle necessary configurations for Taskfiles.
 
 ## Table of Contents
 
@@ -20,7 +20,6 @@ powerpacks that bundle necessary configurations for Taskfile and Aquafiles.
 - [Development](#development)
     - [Repository Structure](#repository-structure)
     - [Development with Taskfile](#development-with-taskfile)
-    - [Installing Tools with Aqua](#installing-tools-with-aqua)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -34,8 +33,8 @@ environment. This ensures you spend less time managing setups and more time focu
 To make the most out of this project, ensure the following tools are installed:
 
 - [Git](https://git-scm.com): Essential for version control and managing codebase changes.
-- [Task](https://taskfile.dev/): A task runner facilitating automated workflows and tasks.
-- [Aqua](https://aquaproj.github.io): Ensures your CLI tools are up-to-date.
+- [Task](https://taskfile.dev/): A task runner facilitating automated workflows and tasks (v3.38.0 or later).
+- [jq](https://jqlang.github.io/jq/): A lightweight and flexible command-line JSON processor (v1.7.1 or later).
 
 ## Installation
 
@@ -73,7 +72,7 @@ To make the most out of this project, ensure the following tools are installed:
 
 ## Usage
 
-Use the `tk` CLI to install powerpacks, which include Taskfiles and Aquafiles. These files are tailored for efficient
+Use the `tk` CLI to install powerpacks, which include Taskfiles. These files are tailored for efficient
 management of tools and environments, easing development workflows.
 
 ## Development
@@ -97,31 +96,14 @@ To develop and test features for the `tk` CLI:
 ### Repository Structure
 
 - `cmd/tk`: Contains the main source code for the `tk` CLI.
-- `powerpacks`: Configuration folders that include Taskfiles and Aquafiles.
+- `powerpacks`: Configuration folders that include Taskfiles.
 - `Taskfile.yaml`: Main Taskfile for automating development tasks.
-- `aqua.yaml`: Configuration file specifying CLI tools for Aqua.
 
 ### Development with Taskfile
 
 Leverage the Taskfile in this repository to automate common development tasks. Typical tasks available include building
 the CLI, running tests, and linting the codebase. Review the `Taskfile.yaml` available in the root directory to
 understand the tasks and their configuration.
-
-### Installing Tools with Aqua
-
-1. **Install Aqua**: Follow the instructions on the [Aqua installation guide](https://aquaproj.github.io/docs/install)
-   to set up Aqua CLI.
-
-2. **Configure Aqua**: Use the `aqua.yaml` file present in the repository to define the CLI tools and their versions for
-   your development setup.
-
-3. **Install Tools**: Run the following command to install all necessary tools listed in the `aqua.yaml`:
-   ```bash
-   aqua i
-   ```
-
-   Aqua will ensure all specified tools are installed in your environment, leveraging its centralized configuration for
-   consistency across systems.
 
 ## Contributing
 

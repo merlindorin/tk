@@ -1,32 +1,31 @@
-# tk: Simplify Tool Installation for Projects
+# tk
 
 [![Build Status](https://github.com/merlindorin/tk/actions/workflows/golangci.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/golangci.yml)
-[![Test Status](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml)
-[![Test Status](https://github.com/merlindorin/tk/actions/workflows/trufflehog.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/trufflehog.yml)
+[![Release Status](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml/badge.svg)](https://github.com/merlindorin/tk/actions/workflows/goreleaser.yml)
 
-> Welcome to `tk`, a command-line interface (CLI) designed to streamline the installation of tools for your projects.
-Managed by [merlindorin](https://github.com/merlindorin), this project offers simplicity and efficiency by using
-powerpacks that bundle necessary configurations for Taskfiles.
+> A CLI tool that bootstraps your projects with pre-configured [Taskfile](https://taskfile.dev) powerpacks. Stop copying boilerplate configs between projects—install what you need in seconds.
 
-## Table of Contents
+## Table of Content
 
-- [Summary](#summary)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-    - [Binaries via GitHub Releases](#binaries-via-github-releases)
-    - [Binary Installation using Script](#binary-installation-using-script)
-    - [Docker Image](#docker-image)
-- [Usage](#usage)
-- [Development](#development)
-    - [Repository Structure](#repository-structure)
-    - [Development with Taskfile](#development-with-taskfile)
-- [Contributing](#contributing)
-- [License](#license)
+* [Features](#features)
+* [Prerequisites](#prerequisites)
+* [Installation](#installation)
+  * [Binaries via GitHub Releases](#binaries-via-github-releases)
+  * [Binary Installation using Script](#binary-installation-using-script)
+  * [Docker Image](#docker-image)
+* [Usage](#usage)
+* [Development](#development)
+  * [Repository Structure](#repository-structure)
+  * [Development with Taskfile](#development-with-taskfile)
+* [Contributing](#contributing)
+* [License](#license)
 
-## Summary
+## Features
 
-`tk` simplifies your project setup by providing powerpacks that ensure consistent configuration across your development
-environment. This ensures you spend less time managing setups and more time focusing on development.
+- **Powerpacks**: Curated bundles of Taskfile configurations for common tools (linters, formatters, CI workflows)
+- **Zero config**: Sensible defaults that work out of the box
+- **Composable**: Mix and match powerpacks to fit your stack
+- **Consistent**: Same tooling setup across all your projects
 
 ## Prerequisites
 
@@ -92,12 +91,6 @@ To develop and test features for the `tk` CLI:
    ```
 4. Develop and test your changes locally.
 5. Commit your changes with descriptive messages.
-
-### Repository Structure
-
-- `cmd/tk`: Contains the main source code for the `tk` CLI.
-- `powerpacks`: Configuration folders that include Taskfiles.
-- `Taskfile.yaml`: Main Taskfile for automating development tasks.
 
 ### Development with Taskfile
 

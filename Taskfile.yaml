@@ -7,7 +7,6 @@ includes:
     goreleaser: .tk/goreleaser/Taskfile.yaml
     install: .tk/install/Taskfile.yaml
     license: .tk/license/Taskfile.yaml
-    trufflehog: .tk/trufflehog/Taskfile.yaml
     
 
 dotenv:

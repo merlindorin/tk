@@ -5,6 +5,7 @@ import (
 
 	"github.com/alecthomas/kong"
 	"github.com/merlindorin/go-shared/pkg/cmd"
+
 	"github.com/merlindorin/tk/cmd/tk/commands"
 	"github.com/merlindorin/tk/cmd/tk/global"
 )

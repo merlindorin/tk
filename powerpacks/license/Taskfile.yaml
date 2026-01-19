@@ -20,8 +20,8 @@ tasks:
       - task: generate
 
   pre-commit:
-    cmd:
-      task: default
+    cmds:
+      - task: default
 
   run:
     desc: Run license

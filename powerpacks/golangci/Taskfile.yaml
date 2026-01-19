@@ -4,7 +4,7 @@ vars:
   DEFAULT_GO_BIN: 'go'
   DEFAULT_GOLANGCI_PACKAGE: 'github.com/golangci/golangci-lint/v2/cmd/golangci-lint'
   DEFAULT_GOLANGCI_BIN_NAME: 'golangci-lint'
-  DEFAULT_GOLANGCI_VERSION: 'latest'
+  DEFAULT_GOLANGCI_VERSION: 'v2.8.0'
   DEFAULT_GOLANGCI_GITHUBACTION_FILENAME: 'golangci.yml'
   DEFAULT_GOLANGCI_CONFIG_FILENAME: '.golangci.yaml'
   DEFAULT_GOLANGCI_SOURCES: '{{ .DEFAULT_GO_SOURCES | default "./..." }}'
@@ -18,8 +18,8 @@ tasks:
       - task: ci
 
   pre-commit:
-    cmd:
-      task: default
+    cmds:
+      - task: default
 
   run:
     desc: Run golangci

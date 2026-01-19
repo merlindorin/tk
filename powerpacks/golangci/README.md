@@ -44,7 +44,7 @@ Here are the tasks that the `Taskfile` provides:
 
 ## Usage
 
-To use this `Taskfile`, include it in your project's `Taskfile`. For example:q:
+To use this `Taskfile`, include it in your project's `Taskfile`. For example:
 
 ```yaml
 version: '3'

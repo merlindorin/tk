@@ -6,7 +6,8 @@ vars:
 
 tasks:
   default:
-    - task: install
+    cmds:
+      - task: install
 
   install:
     summary: |
@@ -33,20 +34,20 @@ tasks:
 
   uninstall:
     summary: |
-      Run install commands in task.
+      Run uninstall commands in task.
 
       The following variables are available:
 
       | VARIABLE       | DESCRIPTION                    | DEFAULT |
       |----------------|--------------------------------|---------|
-      | `PATTERN`      | the task name pattern to match | `{{.INSTALL_DEFAULT_PATTERN}}` |
+      | `PATTERN`      | the task name pattern to match | `{{.UNINSTALL_DEFAULT_PATTERN}}` |
 
       Examples:
-        - `task uninstall` will run all install tasks
-        - `task {{.TASK}}` will explicitly run all install tasks
-      
+        - `task uninstall` will run all uninstall tasks
+        - `task {{.TASK}}` will explicitly run all uninstall tasks
+
       Note:
-        You can add any extra to all install commands by using "--". For example `task -- -f` to force all update.
+        You can add any extra to all uninstall commands by using "--". For example `task -- -f` to force all update.
     vars:
       PATTERN: '{{.PATTERN | default .UNINSTALL_DEFAULT_PATTERN}}'
 

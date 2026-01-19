@@ -1,6 +1,7 @@
 version: '3'
 
 vars:
+  DEFAULT_GO_BIN: 'go'
   DEFAULT_GORELEASER_VERSION: 'latest'
   DEFAULT_GORELEASER_PACKAGE: 'github.com/goreleaser/goreleaser/v2'
   DEFAULT_GORELEASER_BIN_NAME: 'goreleaser'

@@ -1,68 +1,74 @@
-# Taskfile Markdown Linting Hook
+# License Taskfile
 
-> This repository includes a Taskfile dedicated to Markdown linting, designed to be included and reused across different
-> Taskfile configurations.
+This repository contains a reusable Taskfile that provides license file generation for projects. The
+tasks included in this `Taskfile` use the [license](https://github.com/nishanths/license) tool.
 
 <!-- TOC -->
-* [Taskfile Markdown Linting Hook](#taskfile-markdown-linting-hook)
+* [License Taskfile](#license-taskfile)
   * [Summary](#summary)
   * [Prerequisites](#prerequisites)
   * [Configuration](#configuration)
+  * [Available Tasks](#available-tasks)
   * [Usage](#usage)
-    * [Example Integration](#example-integration)
-    * [Linting Markdown Files](#linting-markdown-files)
 <!-- TOC -->
 
 ## Summary
 
-The Taskfile included in this repository provides tasks for linting Markdown files, promoting consistent and
-standardized documentation format across projects. It is meant to be easily integrated with any Taskfile setup, so you
-can enforce style rules on your Markdown files using  [markdownlint](https://github.com/markdownlint/markdownlint), a
-tool that checks for and corrects style issues in Markdown documents.
+This `Taskfile` provides a set of tasks that help you generate and manage license files for your project. It
+automatically fetches project details (author name, project name, year) from your environment using `gh` (GitHub CLI)
+and generates a standardized license file.
 
 ## Prerequisites
 
-This Taskfile assumes that you have the following prerequisites installed:
+* [Task](https://taskfile.dev/): A task runner / simpler Make alternative written in Go.
+* [license](https://github.com/nishanths/license): A command-line tool for generating license files.
+* [gh](https://cli.github.com/): GitHub CLI, used to fetch author and project information.
 
-* [Task](https://taskfile.dev/): A task runner that allows you to execute commands and scripts defined in
-  a  `Taskfile.yaml`.
-* [markdownlint-cli](https://github.com/igorshubovych/markdownlint-cli): A command-line interface for markdownlint used
-  for linting Markdown files.
-
-Make sure these prerequisites are met before using the provided Taskfile.
+Install these tools before proceeding.
 
 ## Configuration
 
-The Taskfile automatically includes the following markdownlint configuration provided by an external Taskfile from the
-official source.
+The `Taskfile` comes with these configurable variables:
 
-The external Taskfile can be imported directly as shown in the Taskfile snippet below:
+* `DEFAULT_LICENSE_PACKAGE`: The Go package for the license tool. Default: `github.com/nishanths/license/v5`
+* `DEFAULT_LICENSE_BIN_NAME`: The binary name of the license tool. Default: `license`
+* `DEFAULT_LICENSE_VERSION`: The version to install. Default: `latest`
+* `DEFAULT_LICENSE_TYPE`: The type of license to generate. Default: `mit`
+* `DEFAULT_LICENSE_FILENAME`: The output filename. Default: `LICENSE.md`
+* `DEFAULT_LICENSE_NAME`: The license holder name, fetched from GitHub CLI.
+* `DEFAULT_LICENSE_YEAR`: The license year, defaults to the current year.
+* `DEFAULT_LICENSE_PROJECT`: The project name, fetched from GitHub CLI.
+
+You can override these variables by redefining them in your environment or in your `Taskfile`.
+
+## Available Tasks
+
+Here are the tasks that the `Taskfile` provides:
+
+* `generate`: Generates a license file using project details. Skips generation if the license file already exists.
+* `run`: Runs the license tool directly with custom arguments.
+* `install`: Installs the license tool as a Go tool dependency.
+* `uninstall`: Removes the license tool from Go tool dependencies.
 
 ## Usage
 
-To utilize the Markdown linting tasks, include the external Taskfile in your project's  `Taskfile.yaml`. This enables
-you to run linting commands as predefined tasks within your development workflow.
-
-### Example Integration
-
-Assuming you have the following  `Taskfile.yaml`  in your project:
+To use this `Taskfile`, include it in your project's `Taskfile`. For example:
 
 ```yaml
 version: '3'
 
 includes:
-  markdownlint: https://raw.githubusercontent.com/vanyda-official/taskfile-markdownlint/main/tasks.yaml
+  license: .tk/license/Taskfile.yaml
 ```
 
-Initially integrate the Taskfile with the above configuration.
-
-### Linting Markdown Files
-
-Once the Taskfile is included, you can lint your Markdown files by invoking a markdownlint task as follows:
+Generate a license file:
 
 ```shell
-task markdownlint:lint
+task license:generate
 ```
 
-By running this command, the markdownlint tool will be executed to analyze your Markdown files, and any style issues
-will be reported accordingly. This ensures that all your Markdown documentation adheres to the predefined style guide.
+Customize the license holder name:
+
+```shell
+LICENSE_NAME='Jane Doe <jane.doe@example.com>' task license:generate
+```

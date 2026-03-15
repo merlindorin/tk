@@ -33,28 +33,24 @@ tasks:
 
       The following variables are available:
 
-      | VARIABLE            | DESCRIPTION               | DEFAULT |
-      |---------------------|---------------------------|---------|
-      | `LICENSE_ARGS`     | license arguments        | `{{ .DEFAULT_LICENSE_ARGS }}` |
-      | `BIN_NAME` | license bin name         | `{{ .DEFAULT_LICENSE_BIN_NAME }}` |
-
-      Usual environment variables used for building a golang application are obviously available like:
-        - `GOOS` for setting the build OS
-        - `GOARCH` for setting the build architecture
+      | VARIABLE       | DESCRIPTION      | DEFAULT                          |
+      |----------------|------------------|----------------------------------|
+      | `LICENSE_ARGS` | license arguments | `{{ .DEFAULT_LICENSE_ARGS }}`   |
+      | `BIN_NAME`     | license bin name  | `{{ .DEFAULT_LICENSE_BIN_NAME }}`|
 
       Extra arguments can be provided using `--` (non exclusive with `LICENSE_ARGS`).
 
       Examples:
-        - `SOURCES=./cmd/... task {{ .TASK }}` is similar to `license-lint`
-        - `task {{ .TASK }} -- -v` is similar to `license-lint -v`
-        - `LICENSE_ARGS="-v" task {{ .TASK }}` is similar to `license-lint -v`
+        - `task {{ .TASK }} -- mit` is similar to `license mit`
+        - `task {{ .TASK }} -- -o LICENSE.md mit` is similar to `license -o LICENSE.md mit`
+        - `LICENSE_ARGS="-y 2024" task {{ .TASK }}` is similar to `license -y 2024`
 
     cmd: 'go tool {{.BIN_NAME }} {{.LICENSE_ARGS}} {{.CLI_ARGS}}'
 
   install:
     vars:
-      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
       PACKAGE: '{{.PACKAGE | default .DEFAULT_LICENSE_PACKAGE}}'
+      GO_BIN: '{{.GO_BIN | default .DEFAULT_GO_BIN}}'
       VERSION: '{{.VERSION | default .DEFAULT_LICENSE_VERSION}}'
     cmd: '{{.GO_BIN}} get -tool {{.PACKAGE}}@{{.VERSION}}'
     status:

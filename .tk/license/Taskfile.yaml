@@ -7,12 +7,16 @@ vars:
   DEFAULT_LICENSE_VERSION: 'latest'
   DEFAULT_LICENSE_TYPE: 'mit'
   DEFAULT_LICENSE_FILENAME: 'LICENSE.md'
+  # These defaults are evaluated on every `task` invocation, so they must never fail:
+  # a project without gh, without authentication or outside GitHub still has to run.
   DEFAULT_LICENSE_NAME:
-    sh: gh api user -t '{{ "{{ .login }} <{{ .email }}>" }}'
+    sh: >-
+      gh api user -t '{{ "{{ .login }} <{{ .email }}>" }}' 2>/dev/null
+      || echo "$(git config --get user.name) <$(git config --get user.email)>"
   DEFAULT_LICENSE_YEAR:
     sh: date +'%Y'
   DEFAULT_LICENSE_PROJECT:
-    sh: gh repo view --json name -t '{{ "{{ .name }}" }}'
+    sh: gh repo view --json name -t '{{ "{{ .name }}" }}' 2>/dev/null || basename "$PWD"
 
 tasks:
   default:

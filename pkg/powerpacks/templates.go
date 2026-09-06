@@ -5,7 +5,10 @@ package powerpacks
 const Marker = "#!tk"
 
 const (
-	envrcExport = "export TASK_X_REMOTE_TASKFILES=1"
+	// legacyEnvrcExport is the variable tk used to export from .envrc to turn on the Task
+	// remote taskfiles experiment. Task released the experiment and now warns about the
+	// variable on every single invocation, so tk removes the line instead of writing it.
+	legacyEnvrcExport = "TASK_X_REMOTE_TASKFILES"
 
 	taskfileVersion = "version: '3'"
 	taskfileHeader  = "includes:"

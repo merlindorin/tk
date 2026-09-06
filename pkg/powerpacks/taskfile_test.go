@@ -183,19 +183,34 @@ func TestMergeEnvrc(t *testing.T) {
 		want    string
 	}{
 		{
-			name:    "should create an envrc when there is none",
+			name:    "should not create an envrc",
 			content: "",
-			want:    "export TASK_X_REMOTE_TASKFILES=1 #!tk\n",
+			want:    "",
+		},
+		{
+			name:    "should remove the export tk used to write",
+			content: "export TASK_X_REMOTE_TASKFILES=1 #!tk\n",
+			want:    "",
+		},
+		{
+			name:    "should remove it from a file written before the marker existed",
+			content: "export TASK_X_REMOTE_TASKFILES=1\n",
+			want:    "",
 		},
 		{
 			name:    "should keep the exports the user wrote",
-			content: "use flake\nexport FOO=bar\n",
-			want:    "use flake\nexport FOO=bar\nexport TASK_X_REMOTE_TASKFILES=1 #!tk\n",
+			content: "use flake\nexport TASK_X_REMOTE_TASKFILES=1 #!tk\nexport FOO=bar\n",
+			want:    "use flake\nexport FOO=bar\n",
 		},
 		{
-			name:    "should update the export in place",
-			content: "export TASK_X_REMOTE_TASKFILES=1\nexport FOO=bar\n",
-			want:    "export TASK_X_REMOTE_TASKFILES=1 #!tk\nexport FOO=bar\n",
+			name:    "should leave a file it owns nothing in alone",
+			content: "use flake\nexport FOO=bar\n",
+			want:    "use flake\nexport FOO=bar\n",
+		},
+		{
+			name:    "should keep windows line endings",
+			content: "use flake\r\nexport TASK_X_REMOTE_TASKFILES=1 #!tk\r\n",
+			want:    "use flake\r\n",
 		},
 	}
 
@@ -203,5 +218,13 @@ func TestMergeEnvrc(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			assert.Equal(t, tt.want, powerpacks.MergeEnvrc(tt.content))
 		})
+	}
+}
+
+func TestMergeEnvrc_neverWritesTheReleasedExperiment(t *testing.T) {
+	// Task released the REMOTE_TASKFILES experiment and warns about the variable on every
+	// invocation, so tk must never put it back into a project.
+	for _, content := range []string{"", "use flake\n", "export TASK_X_REMOTE_TASKFILES=1\n"} {
+		assert.NotContains(t, powerpacks.MergeEnvrc(content), "TASK_X_REMOTE_TASKFILES")
 	}
 }

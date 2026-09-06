@@ -66,7 +66,7 @@ func TestManagerWrite_onEmptyProject(t *testing.T) {
 	assert.Equal(t, "version: '3'\ntasks:\n  hook: {}\n", read(t, target, ".tk", "git", "Taskfile.yaml"))
 	assert.Equal(t, "# Git\n", read(t, target, ".tk", "git", "README.md"))
 	assert.Contains(t, read(t, target, "Taskfile.yaml"), "git: .tk/git/Taskfile.yaml #!tk")
-	assert.Contains(t, read(t, target, ".envrc"), "TASK_X_REMOTE_TASKFILES=1 #!tk")
+	assert.False(t, exists(target, ".envrc"), "tk has nothing to write there")
 	assert.Contains(t, read(t, target, ".tk.yaml"), "version: test")
 }
 
@@ -100,7 +100,7 @@ func TestManagerWrite_keepsUserContent(t *testing.T) {
 	assert.Contains(t, merged, "docker: ./build/Taskfile.yaml")
 	assert.Contains(t, merged, "hello:")
 	assert.Contains(t, merged, "git: .tk/git/Taskfile.yaml #!tk")
-	assert.Contains(t, read(t, target, ".envrc"), "use flake")
+	assert.Equal(t, "use flake\n", read(t, target, ".envrc"), "an envrc of their own is untouched")
 }
 
 func TestManagerWrite_removesExcludedPowerpack(t *testing.T) {
@@ -302,4 +302,49 @@ func must(name string, err error) string {
 	}
 
 	return name
+}
+
+func TestManagerWrite_removesTheEnvrcItUsedToWrite(t *testing.T) {
+	// Task released the REMOTE_TASKFILES experiment: the export tk wrote there now makes
+	// Task print a warning on every invocation, so an update has to clean it up.
+	target := t.TempDir()
+	envrc := filepath.Join(target, ".envrc")
+
+	assert.NoError(t, os.WriteFile(envrc, []byte("export TASK_X_REMOTE_TASKFILES=1 #!tk\n"), 0o600))
+
+	_, err := testManager().Write(target, testConfig())
+	assert.NoError(t, err)
+	assert.False(t, exists(target, ".envrc"), "nothing else was in it")
+}
+
+func TestManagerWrite_keepsAnEnvrcTheUserAlsoUses(t *testing.T) {
+	target := t.TempDir()
+	envrc := filepath.Join(target, ".envrc")
+	content := "use flake\nexport TASK_X_REMOTE_TASKFILES=1 #!tk\nexport FOO=bar\n"
+
+	assert.NoError(t, os.WriteFile(envrc, []byte(content), 0o600))
+
+	manager := testManager()
+
+	_, err := manager.Write(target, testConfig())
+	assert.NoError(t, err)
+	assert.Equal(t, "use flake\nexport FOO=bar\n", read(t, envrc))
+
+	plan, err := manager.Write(target, testConfig())
+	assert.NoError(t, err)
+	assert.True(t, plan.IsUpToDate(), "the cleanup happens once")
+}
+
+func TestManagerWrite_ignoreEnvrcLeavesItAlone(t *testing.T) {
+	target := t.TempDir()
+	envrc := filepath.Join(target, ".envrc")
+
+	assert.NoError(t, os.WriteFile(envrc, []byte("export TASK_X_REMOTE_TASKFILES=1 #!tk\n"), 0o600))
+
+	config := testConfig()
+	config.IgnoreEnvrc = true
+
+	_, err := testManager().Write(target, config)
+	assert.NoError(t, err)
+	assert.True(t, exists(target, ".envrc"))
 }

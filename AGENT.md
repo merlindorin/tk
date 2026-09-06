@@ -39,7 +39,7 @@ tk/
 │   ├── manager.go             # Plan/apply engine: what tk would write, and writing it
 │   ├── powerpack.go           # Powerpack data structure, I/O and checksum
 │   ├── config.go              # .tk.yaml (options + provenance)
-│   ├── taskfile.go            # Marker-based merge of Taskfile.yaml and .envrc
+│   ├── taskfile.go            # Marker-based merge of Taskfile.yaml, and .envrc cleanup
 │   └── templates.go           # Static content of the generated files
 ├── powerpacks/                 # Powerpack definitions (embedded in binary)
 │   ├── powerpacks.go          # Builds powerpack manager from embed.FS
@@ -84,7 +84,7 @@ and converted by `Manager.normalize` on the next write.
 
 1. **Embedding**: All files in `powerpacks/` are embedded into the Go binary using `//go:embed *`
 2. **Initialization**: `tk init` copies embedded powerpacks to `.tk/<powerpack>/` directory
-3. **Generation**: Merges the powerpack includes into the root `Taskfile.yaml`, marking each generated line with a trailing `#!tk` comment (see `pkg/powerpacks/taskfile.go`). Only marked lines are rewritten; the rest of the file is preserved. `.envrc` is merged the same way
+3. **Generation**: Merges the powerpack includes into the root `Taskfile.yaml`, marking each generated line with a trailing `#!tk` comment (see `pkg/powerpacks/taskfile.go`). Only marked lines are rewritten; the rest of the file is preserved. `.envrc` is cleaned of the lines tk used to write there and removed when nothing else is left
 4. **Configuration**: Saves options to `.tk.yaml` for future updates
 5. **Updates**: `tk update` reads `.tk.yaml` and regenerates files from embedded powerpacks
 
@@ -92,7 +92,7 @@ and converted by `Manager.normalize` on the next write.
 
 1. **Embed Over Remote**: Powerpacks are embedded in the binary rather than fetched remotely for reliability and offline support
 2. **`.tk/` Directory**: Generated files live in `.tk/` to separate them from source control and user code. `.tk/` is fully owned by tk and wiped on each run, while shared files (`Taskfile.yaml`, `.envrc`) are only edited line by line
-3. **Marker-based merge**: `Taskfile.yaml` and `.envrc` are shared with the user, so tk only owns the lines carrying the `#!tk` marker (plus legacy `.tk/<pack>/Taskfile.yaml` includes generated before the marker existed)
+3. **Marker-based merge**: `Taskfile.yaml` and `.envrc` are shared with the user, so tk only owns the lines carrying the `#!tk` marker (plus the legacy lines it generated before the marker existed: `.tk/<pack>/Taskfile.yaml` includes and the `TASK_X_REMOTE_TASKFILES` export). tk writes nothing to `.envrc` anymore — Task released that experiment and warns about the variable — so an update removes the line and deletes the file when it held nothing else
 4. **Immutable Powerpacks**: The `powerpacks/` directory is the source of truth; `.tk/` is regenerated on update
 5. **Tool Management**: Powerpacks use Go's tool directive (`go get -tool`) for managing development tools as project dependencies
 
@@ -317,7 +317,7 @@ Author commits as "Romain DARY <email>" (not Claude).
 - **`powerpacks/powerpacks.go`**: Powerpack discovery and loading
 - **`pkg/powerpacks/manager.go`**: Core orchestration logic
 - **`pkg/powerpacks/templates.go`**: Static content for generated files (`#!tk` marker, fresh Taskfile skeleton)
-- **`pkg/powerpacks/taskfile.go`**: Marker-based merge of the root `Taskfile.yaml` and `.envrc`
+- **`pkg/powerpacks/taskfile.go`**: Marker-based merge of the root `Taskfile.yaml`, and removal of what tk used to write to `.envrc`
 - **`.tk.yaml`**: Project configuration and provenance (options, excludes, tk version, powerpack checksums); it is committed
 - **`Taskfile.yaml`**: Root taskfile (only the `#!tk` marked includes are generated; the rest is yours to edit)
 - **`go.mod`**: Lists all tool dependencies in `tool (...)` block

@@ -15,7 +15,7 @@ type InitCmd struct {
 
 	Include []string `help:"powerpacks to install; every one of them when left out" optional:""`
 
-	DisableEnvrc     bool `help:"do not manage .envrc"`
+	DisableEnvrc     bool `help:"leave .envrc alone, including the export tk used to write there"`
 	DisableTaskfiles bool `help:"do not manage Taskfiles"`
 	DisableReadme    bool `help:"do not write the powerpack documentation"`
 }

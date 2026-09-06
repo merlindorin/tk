@@ -323,10 +323,12 @@ func powerpackNames(list []Powerpack) []string {
 	return selected
 }
 
-// file is a file tk wants to see in the project, with the content it should hold.
+// file is a file tk is responsible for, with the content it should hold. A file marked
+// absent is one tk used to write and no longer does: it is removed from the project.
 type file struct {
 	path    string
 	content []byte
+	absent  bool
 }
 
 // desiredFiles renders every file tk is responsible for, in a stable order.
@@ -337,11 +339,15 @@ func desiredFiles(target string, config Config, selected []Powerpack) ([]file, e
 		powerpack := &selected[i]
 
 		if !config.IgnoreTaskfile && powerpack.HasTaskfile() {
-			files = append(files, file{powerpackPath(powerpack.Name, TaskfileFilename), powerpack.Taskfile})
+			files = append(files, file{
+				path: powerpackPath(powerpack.Name, TaskfileFilename), content: powerpack.Taskfile, absent: false,
+			})
 		}
 
 		if !config.IgnoreReadme && powerpack.HasReadme() {
-			files = append(files, file{powerpackPath(powerpack.Name, ReadmeFilename), powerpack.Readme})
+			files = append(files, file{
+				path: powerpackPath(powerpack.Name, ReadmeFilename), content: powerpack.Readme, absent: false,
+			})
 		}
 	}
 
@@ -360,7 +366,9 @@ func desiredFiles(target string, config Config, selected []Powerpack) ([]file, e
 			return nil, err
 		}
 
-		files = append(files, file{EnvrcFilename, []byte(MergeEnvrc(string(current)))})
+		// tk no longer writes anything to .envrc; what is left is what the user wrote.
+		merged := MergeEnvrc(string(current))
+		files = append(files, file{path: EnvrcFilename, content: []byte(merged), absent: merged == ""})
 	}
 
 	content, err := config.marshal()
@@ -368,7 +376,7 @@ func desiredFiles(target string, config Config, selected []Powerpack) ([]file, e
 		return nil, err
 	}
 
-	return append(files, file{ConfigFilename, content}), nil
+	return append(files, file{path: ConfigFilename, content: content, absent: false}), nil
 }
 
 // rootTaskfile merges the powerpack includes into the Taskfile the user owns.
@@ -396,7 +404,7 @@ func rootTaskfile(target string, selected []Powerpack) (file, error) {
 		return file{}, err //nolint:exhaustruct // the error is what matters
 	}
 
-	return file{name, []byte(merged)}, nil
+	return file{path: name, content: []byte(merged), absent: false}, nil
 }
 
 // FindTaskfile returns the root Taskfile of a project. Writing to the name Task actually
@@ -424,8 +432,11 @@ func FindTaskfile(target string) (string, error) {
 // diff compares the files tk wants with the ones already there.
 func diff(target string, desired []file) ([]Change, error) {
 	wanted := make(map[string]bool, len(desired))
+
 	for _, f := range desired {
-		wanted[f.path] = true
+		if !f.absent {
+			wanted[f.path] = true
+		}
 	}
 
 	stale, err := staleFiles(target, wanted)
@@ -442,6 +453,14 @@ func diff(target string, desired []file) ([]Change, error) {
 		current, found, er := readFile(filepath.Join(target, filepath.FromSlash(f.path)))
 		if er != nil {
 			return nil, er
+		}
+
+		if f.absent {
+			if found {
+				changes = append(changes, Change{Path: f.path, Action: ActionDelete, content: nil})
+			}
+
+			continue
 		}
 
 		action := ActionCreate

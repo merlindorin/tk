@@ -29,7 +29,12 @@ jobs:
           cache: true
       # These are pinned to exact versions: neither cosign-installer nor
       # login-action publishes a moving major tag. Dependabot bumps them.
-      - uses: sigstore/cosign-installer@v4.1.2          # installs cosign
+      #
+      # cosign is held on the v3 line, which installs cosign v2: `sign-blob`
+      # writes a Sigstore bundle from cosign v3 on and ignores the
+      # certificate and signature flags the `signs` block below uses.
+      # Moving to v4 means rewriting that block, not just the pin.
+      - uses: sigstore/cosign-installer@v3.10.1         # installs cosign
       - uses: anchore/sbom-action/download-syft@v0.24.2 # installs syft
       - uses: docker/login-action@v4.6.0                # login to ghcr
         with:

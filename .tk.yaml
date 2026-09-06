@@ -1,3 +1,26 @@
+version: dev
 ignore_readme: false
 ignore_taskfile: false
-excludes: []
+ignore_envrc: false
+includes:
+    - claude
+    - default
+    - dependabot
+    - git
+    - go
+    - golangci
+    - goreleaser
+    - install
+    - license
+    - trufflehog
+powerpacks:
+    claude: sha256:3e3be415eddef9ba07bc29611182f5971c3703bcf431592d155fd4f3670f4107
+    default: sha256:c2ea17490ac4beb22672fcdf1f0d39fb7a397656c2a6e45603b4042c709146fd
+    dependabot: sha256:7642c5d3410315271f9034db2515d1737700f6d2e49a4d00570ed93b4c0f5c63
+    git: sha256:0b0bad7348da4ec1fcc8744171f49717069d216d079eea0bdf61d8cf0c73a0b0
+    go: sha256:f8121a8fe8915184e17856df082946b08de39570297d1f94419d8d51a78f34a3
+    golangci: sha256:95865b4bdeb5132bfd5c538bcc035a92c04692a6c26c088bf0d8c4762c61759d
+    goreleaser: sha256:ab9cde552a27590d934e77a781d1b535083b292c8119497130b70628a5be2fb2
+    install: sha256:a883a4e43493951c0bb560573a6357e65be5e3eecdf8ab64254884f1c5ff0264
+    license: sha256:060b5540350363c2a50a19206975a1d34cf2a376b344c329e22e952b45b83ff9
+    trufflehog: sha256:85511f02974790df2d82dd66c5c285fb21a3664602c5b9c520174a438c2d3995

@@ -70,40 +70,6 @@ func MergeTaskfile(content string, taskfiles map[string]string) (string, error) 
 	return joinLines(out, ending), nil
 }
 
-// MergeEnvrc drops the lines tk owns from a .envrc and leaves every other line intact.
-// tk has nothing to put there anymore, so the result is what the user wrote, or an empty
-// string when the file held nothing else and can be removed.
-func MergeEnvrc(content string) string {
-	if strings.TrimSpace(content) == "" {
-		return ""
-	}
-
-	lines, ending := splitLines(content)
-	kept := make([]string, 0, len(lines))
-
-	for _, line := range lines {
-		if !isTKExport(line) {
-			kept = append(kept, line)
-		}
-	}
-
-	if strings.TrimSpace(strings.Join(kept, "")) == "" {
-		return ""
-	}
-
-	return joinLines(kept, ending)
-}
-
-// isTKExport tells whether a .envrc line belongs to tk, either because it carries the
-// marker or because it is the export tk wrote before the marker existed.
-func isTKExport(line string) bool {
-	if strings.HasSuffix(strings.TrimRight(line, " \t"), Marker) {
-		return true
-	}
-
-	return strings.HasPrefix(strings.TrimSpace(line), "export ") && strings.Contains(line, legacyEnvrcExport)
-}
-
 // newTaskfile renders a complete Taskfile, used when the target has none yet.
 func newTaskfile(taskfiles map[string]string) string {
 	footer, _ := splitLines(taskfileFooter)

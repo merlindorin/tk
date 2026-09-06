@@ -26,6 +26,13 @@ type Powerpack struct {
 	Description string
 	Readme      []byte
 	Taskfile    []byte
+
+	// Manifest is what the powerpack declares in powerpack.yaml: what it needs, what it
+	// owns in the project, and how to clean up after an older version of itself.
+	Manifest Manifest
+
+	// Sources are the files the manifest writes with the sync strategy, by source path.
+	Sources map[string][]byte
 }
 
 // HasTaskfile reports whether the powerpack carries a Taskfile.
@@ -69,7 +76,14 @@ func (p *Powerpack) WriteReadme(writer io.Writer) error {
 func (p *Powerpack) Checksum() string {
 	hash := sha256.New()
 
-	for _, part := range [][]byte{[]byte(p.Name), p.Taskfile, p.Readme} {
+	declaration, _ := yaml.Marshal(p.Manifest) // a struct of scalars and slices always marshals
+
+	parts := [][]byte{[]byte(p.Name), p.Taskfile, p.Readme, declaration}
+	for _, name := range sortedKeys(p.Sources) {
+		parts = append(parts, []byte(name), p.Sources[name])
+	}
+
+	for _, part := range parts {
 		// sha256 never fails to write.
 		_, _ = hash.Write(part)
 		_, _ = hash.Write([]byte{0})
@@ -78,11 +92,15 @@ func (p *Powerpack) Checksum() string {
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }
 
-// Summary returns the title of the powerpack documentation, used to describe it in
-// `tk list`. It falls back to the powerpack name when the README has no heading.
+// Summary describes the powerpack in `tk list`: what its manifest declares, else the
+// title of its documentation, else its name.
 func (p *Powerpack) Summary() string {
 	if p.Description != "" {
 		return p.Description
+	}
+
+	if p.Manifest.Description != "" {
+		return p.Manifest.Description
 	}
 
 	for _, line := range strings.Split(string(p.Readme), "\n") {
@@ -118,4 +136,26 @@ func (p *Powerpack) Tasks() []string {
 // Prefix is the namespace the powerpack tasks live under in the root Taskfile.
 func (p *Powerpack) Prefix() string {
 	return p.Name + ":"
+}
+
+// Owns returns the files the powerpack is responsible for outside of `.tk/`.
+func (p *Powerpack) Owns() []Owned {
+	return p.Manifest.Owns
+}
+
+// Requires returns the powerpacks this one needs to work.
+func (p *Powerpack) Requires() []string {
+	return p.Manifest.Requires
+}
+
+// sortedKeys returns the keys of a map in a stable order.
+func sortedKeys[V any](m map[string]V) []string {
+	keys := make([]string, 0, len(m))
+	for key := range m {
+		keys = append(keys, key)
+	}
+
+	slices.Sort(keys)
+
+	return keys
 }

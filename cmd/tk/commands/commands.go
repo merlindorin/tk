@@ -88,7 +88,23 @@ func report(writer io.Writer, plan *ps.Plan, dryRun bool) error {
 		return fmt.Errorf("failed to report changes: %w", err)
 	}
 
+	if err := notes(writer, plan.Notes); err != nil {
+		return err
+	}
+
 	return summarize(writer, len(pending), unchanged, dryRun)
+}
+
+// notes prints what tk noticed but will not do on its own, so a file a powerpack left
+// behind is visible rather than silently deleted or silently kept.
+func notes(writer io.Writer, lines []string) error {
+	for _, line := range lines {
+		if _, err := fmt.Fprintf(writer, "  note: %s\n", line); err != nil {
+			return fmt.Errorf("failed to report changes: %w", err)
+		}
+	}
+
+	return nil
 }
 
 // summarize prints the last line of a report.

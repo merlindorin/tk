@@ -1,0 +1,9 @@
+description: Keeps tk itself up to date in the project
+requires: [go]
+
+owns:
+  # tk writes this one: a newer tk must be able to fix its own automation, which is
+  # exactly what `once` would prevent.
+  - path: .github/workflows/tk.yml
+    strategy: sync
+    source: files/workflow.yml

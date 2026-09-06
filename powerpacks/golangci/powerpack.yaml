@@ -1,0 +1,4 @@
+description: golangci-lint configuration
+owns:
+  - path: .golangci.yaml
+  - path: .github/workflows/golangci.yml

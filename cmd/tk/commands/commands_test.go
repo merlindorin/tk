@@ -27,8 +27,8 @@ func initProject(t *testing.T, target string, include ...string) string {
 
 	out := &bytes.Buffer{}
 	command := &commands.InitCmd{
-		Include:      include,
-		DisableEnvrc: false, DisableTaskfiles: false, DisableReadme: false,
+		Include:          include,
+		DisableTaskfiles: false, DisableReadme: false,
 	}
 	command.Target = target
 	command.Out = out
@@ -58,7 +58,7 @@ func TestInitCmd_dryRunWritesNothing(t *testing.T) {
 
 	out := &bytes.Buffer{}
 	command := &commands.InitCmd{
-		Include: nil, DisableEnvrc: false, DisableTaskfiles: false, DisableReadme: false,
+		Include: nil, DisableTaskfiles: false, DisableReadme: false,
 	}
 	command.Target = target
 	command.Out = out
@@ -74,7 +74,7 @@ func TestInitCmd_dryRunWritesNothing(t *testing.T) {
 
 func TestInitCmd_rejectsUnknownPowerpack(t *testing.T) {
 	command := &commands.InitCmd{
-		Include: []string{"nope"}, DisableEnvrc: false, DisableTaskfiles: false, DisableReadme: false,
+		Include: []string{"nope"}, DisableTaskfiles: false, DisableReadme: false,
 	}
 	command.Target = t.TempDir()
 	command.Out = &bytes.Buffer{}

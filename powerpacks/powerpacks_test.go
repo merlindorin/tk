@@ -53,3 +53,36 @@ func TestBuildPowerpackManager_isStable(t *testing.T) {
 		assert.Equal(t, a.Checksum(), b.Checksum())
 	}
 }
+
+func TestBuildPowerpackManager_manifestsAreValid(t *testing.T) {
+	// A manifest tk cannot honour must fail at load time, not halfway through a project.
+	manager, err := powerpacks.BuildPowerpackManager()
+	assert.NoError(t, err)
+
+	for _, name := range manager.Names() {
+		powerpack, ok := manager.Get(name)
+		assert.True(t, ok)
+
+		for _, owned := range powerpack.Owns() {
+			assert.False(t, strings.HasPrefix(owned.Path, ".tk/"), "%s claims %s", name, owned.Path)
+
+			if owned.Source != "" {
+				assert.True(t, len(powerpack.Sources[owned.Source]) > 0, "%s ships no %s", name, owned.Source)
+			}
+		}
+
+		for _, required := range powerpack.Requires() {
+			_, known := manager.Get(required)
+			assert.True(t, known, "%s requires unknown powerpack %s", name, required)
+		}
+	}
+}
+
+func TestBuildPowerpackManager_describesEveryPowerpack(t *testing.T) {
+	manager, err := powerpacks.BuildPowerpackManager()
+	assert.NoError(t, err)
+
+	for _, powerpack := range manager.List() {
+		assert.NotZero(t, powerpack.Manifest.Description, "%s has no manifest description", powerpack.Name)
+	}
+}

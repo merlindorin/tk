@@ -1,0 +1,4 @@
+description: Claude Code agent instructions
+owns:
+  - path: AGENT.md
+  - path: CLAUDE.md

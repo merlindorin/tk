@@ -15,7 +15,6 @@ type InitCmd struct {
 
 	Include []string `help:"powerpacks to install; every one of them when left out" optional:""`
 
-	DisableEnvrc     bool `help:"leave .envrc alone, including the export tk used to write there"`
 	DisableTaskfiles bool `help:"do not manage Taskfiles"`
 	DisableReadme    bool `help:"do not write the powerpack documentation"`
 }
@@ -39,7 +38,6 @@ func (i *InitCmd) Run(commons *cmd.Commons) error {
 		Version:        version(commons),
 		IgnoreReadme:   i.DisableReadme,
 		IgnoreTaskfile: i.DisableTaskfiles,
-		IgnoreEnvrc:    i.DisableEnvrc,
 		Includes:       i.Include,
 		Excludes:       nil,
 		Powerpacks:     nil,

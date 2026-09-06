@@ -38,11 +38,16 @@ tk/
 ├── pkg/powerpacks/             # Core powerpack management logic (the only library package)
 │   ├── manager.go             # Plan/apply engine: what tk would write, and writing it
 │   ├── powerpack.go           # Powerpack data structure, I/O and checksum
-│   ├── config.go              # .tk.yaml (options + provenance)
-│   ├── taskfile.go            # Marker-based merge of Taskfile.yaml, and .envrc cleanup
+│   ├── manifest.go            # powerpack.yaml: requires, owns, migrations
+│   ├── migrate.go             # Applying the declared migrations as planned changes
+│   ├── migrations.go          # The migrations tk itself carries
+│   ├── config.go              # .tk.yaml (options, provenance, ownership)
+│   ├── taskfile.go            # Marker-based merge of the root Taskfile
 │   └── templates.go           # Static content of the generated files
 ├── powerpacks/                 # Powerpack definitions (embedded in binary)
 │   ├── powerpacks.go          # Builds powerpack manager from embed.FS
+│   │                          # each <name>/ holds Taskfile.yaml, README.md,
+│   │                          # an optional powerpack.yaml and optional files/
 │   ├── claude/                # Claude Code AI agent configuration
 │   ├── default/               # Default task patterns
 │   ├── dependabot/            # Dependabot configuration
@@ -72,6 +77,52 @@ tk/
 | `tk remove <name>` | Drop a powerpack from the selection |
 
 Every command takes `--target` (defaults to the working directory); the writing ones take `--dry-run`.
+
+### The powerpack manifest
+
+A powerpack may ship a `powerpack.yaml` next to its Taskfile. It is what makes a powerpack able to reach outside
+`.tk/` in a way tk can reason about:
+
+```yaml
+description: golangci-lint configuration   # shown by `tk list`, beats the README heading
+requires: [go]                             # pulled in automatically when this one is installed
+owns:
+  - path: .golangci.yaml                   # strategy: once (the default)
+  - path: .github/workflows/tk.yml
+    strategy: sync
+    source: files/workflow.yml
+migrations:
+  - id: drop-old-hook
+    reason: the hook moved
+    remove-file: .git/hooks/tk
+```
+
+**Strategies** say who writes an owned file and what tk may do with it:
+
+| STRATEGY | WHO WRITES IT | WHEN THE POWERPACK GOES AWAY |
+|----------|---------------|------------------------------|
+| `once` (default) | the powerpack tasks, guarded by `status: test -f` | reported, never deleted: tk never wrote the content and cannot know what the project wants |
+| `sync` | tk, from `source:` in the powerpack | deleted if it still matches what tk wrote, reported and kept if the project edited it |
+
+Use `sync` for a file that must track the binary (`.github/workflows/tk.yml`: a newer tk has to be able to fix its
+own automation). Use `once` for anything the project is expected to edit — a linter configuration, a Dependabot
+file. `sync` files are recorded in `.tk.yaml` under `generated:` with the checksum tk wrote, which is how an
+untouched file is told apart from an edited one.
+
+**Migrations** undo what an older version of a powerpack did. Each carries exactly one instruction —
+`remove-lines` (with an optional `delete-when-empty`), `remove-file`, or `rename-file` — and is recorded in
+`.tk.yaml` as `<powerpack>:<id>` once it has run, so it never runs twice.
+
+Migrations are deliberately **declarative, not shell**. They are computed into the plan like any other change,
+which is what keeps `--dry-run` and `tk status --check` honest; a `migrate` task shelling out could not be planned.
+
+There are two tiers, and new work belongs in the right one:
+
+- **Pack migrations** live in the powerpack manifest and cover what that powerpack generated.
+- **Core migrations** live in `pkg/powerpacks/migrations.go` and cover what the engine itself used to write —
+  the `TASK_X_REMOTE_TASKFILES` export is the first one. They use the same instructions, so there is one
+  mechanism, not two.
+- The `.tk.yaml` **schema** itself (`excludes:` becoming `includes:`) is neither: that is `Manager.normalize`.
 
 ### Selecting powerpacks
 
@@ -126,6 +177,9 @@ To test changes to powerpacks:
 5. Test with `tk init` in a clean directory
 
 ### Modifying Existing Powerpacks
+
+When a powerpack starts or stops generating a file, declare it in `owns:` rather than leaving it for the engine to
+learn about; when it stops generating one it used to, add a migration so existing projects are cleaned up.
 
 **CRITICAL**: Powerpacks are templates that get copied to user projects. Changes affect:
 - **This repo's `.tk/`**: Run `tk update` to regenerate

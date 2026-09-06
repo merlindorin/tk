@@ -1,0 +1,5 @@
+description: GoReleaser configuration
+owns:
+  - path: .goreleaser.yaml
+  - path: .github/workflows/goreleaser.yml
+  - path: install.sh

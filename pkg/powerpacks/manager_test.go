@@ -34,7 +34,6 @@ func testConfig() ps.Config {
 		Version:        "test",
 		IgnoreReadme:   false,
 		IgnoreTaskfile: false,
-		IgnoreEnvrc:    false,
 		Includes:       nil,
 		Excludes:       nil,
 		Powerpacks:     nil,
@@ -139,12 +138,10 @@ func TestManagerWrite_honoursIgnoreOptions(t *testing.T) {
 	target := t.TempDir()
 	config := testConfig()
 	config.IgnoreReadme = true
-	config.IgnoreEnvrc = true
 
 	_, err := testManager().Write(target, config)
 	assert.NoError(t, err)
 
-	assert.False(t, exists(target, ".envrc"))
 	assert.False(t, exists(target, ".tk", "git", "README.md"))
 	assert.True(t, exists(target, ".tk", "git", "Taskfile.yaml"))
 }
@@ -333,18 +330,4 @@ func TestManagerWrite_keepsAnEnvrcTheUserAlsoUses(t *testing.T) {
 	plan, err := manager.Write(target, testConfig())
 	assert.NoError(t, err)
 	assert.True(t, plan.IsUpToDate(), "the cleanup happens once")
-}
-
-func TestManagerWrite_ignoreEnvrcLeavesItAlone(t *testing.T) {
-	target := t.TempDir()
-	envrc := filepath.Join(target, ".envrc")
-
-	assert.NoError(t, os.WriteFile(envrc, []byte("export TASK_X_REMOTE_TASKFILES=1 #!tk\n"), 0o600))
-
-	config := testConfig()
-	config.IgnoreEnvrc = true
-
-	_, err := testManager().Write(target, config)
-	assert.NoError(t, err)
-	assert.True(t, exists(target, ".envrc"))
 }

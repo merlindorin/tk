@@ -15,6 +15,7 @@
   * [Docker Image](#docker-image)
 * [Usage](#usage)
   * [Owned lines](#owned-lines)
+  * [What a powerpack owns](#what-a-powerpack-owns)
 * [Development](#development)
   * [Repository Structure](#repository-structure)
   * [Development with Taskfile](#development-with-taskfile)
@@ -151,10 +152,44 @@ Everything else — your own includes, variables, tasks, comments and formatting
 are adopted and marked on the next `tk update`. The `.tk/` directory stays fully owned by `tk` and is regenerated on
 every run.
 
+### What a powerpack owns
+
+A powerpack can declare the files it is responsible for outside `.tk/`, in a `powerpack.yaml`:
+
+```yaml
+description: golangci-lint configuration
+requires: [go]                             # installed automatically alongside this one
+owns:
+  - path: .golangci.yaml                   # written by its tasks; tk reports it, never deletes it
+  - path: .github/workflows/tk.yml
+    strategy: sync                         # written by tk; kept in step, removed with the powerpack
+    source: files/workflow.yml
+migrations:
+  - id: drop-old-hook
+    reason: the hook moved
+    remove-file: .git/hooks/tk
+```
+
+That is what lets `tk remove` clean up after itself instead of leaving generated workflows behind:
+
+```console
+$ tk remove golangci
+removing [golangci]
+  delete  .tk/golangci/Taskfile.yaml
+  note: golangci is not installed but .golangci.yaml is still there, written by its tasks;
+        remove it by hand if the project no longer wants it
+```
+
+`tk` deletes a file only when it wrote the content itself and the project has not edited it since. Anything else
+is reported and left alone.
+
+**Migrations** let a powerpack undo what an older version of it did — remove a line, remove a file, rename one.
+They run once per project, are recorded in `.tk.yaml`, and show up in `--dry-run` like any other change, because
+they are declarations rather than scripts.
+
 `tk` no longer writes to `.envrc`. It used to export `TASK_X_REMOTE_TASKFILES=1` to turn on a Task experiment;
 Task released the experiment and now prints a warning about the variable on every invocation, so `tk update`
-removes that line instead — and deletes the file when it held nothing else. Pass `--disable-envrc` to leave the
-file untouched. If your shell still exports the variable, direnv is holding the old value: reload it or open a
+removes that line instead — and deletes the file when it held nothing else. If your shell still exports the variable, direnv is holding the old value: reload it or open a
 new shell.
 
 ## Development

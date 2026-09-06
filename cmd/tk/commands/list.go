@@ -38,7 +38,8 @@ func (l *ListCmd) Run() error {
 
 	for _, powerpack := range manager.List() {
 		if _, err = fmt.Fprintf(table, "%s\t%s\t%s\t%s\n",
-			powerpack.Name, powerpack.Prefix(), state(&config, &powerpack, installed),
+			powerpack.Name, powerpack.Prefix(),
+			state(&config, &powerpack, installed && manager.IsInstalled(config, powerpack.Name)),
 			l.details(&powerpack)); err != nil {
 			return fmt.Errorf("failed to list powerpacks: %w", err)
 		}
@@ -79,10 +80,11 @@ func (l *ListCmd) details(powerpack *ps.Powerpack) string {
 	return strings.Join(tasks, " ")
 }
 
-// state describes what a powerpack is doing in this project.
+// state describes what a powerpack is doing in this project. A powerpack pulled in by
+// another one counts as installed, which is why the caller asks the manager.
 func state(config *ps.Config, powerpack *ps.Powerpack, installed bool) string {
 	switch {
-	case !installed, !config.IsSelected(powerpack.Name):
+	case !installed:
 		return "available"
 	case len(config.Powerpacks) == 0:
 		// A configuration written before tk recorded provenance.

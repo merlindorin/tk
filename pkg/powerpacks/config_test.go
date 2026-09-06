@@ -34,14 +34,14 @@ func TestLoadConfig_fromAPreviousVersion(t *testing.T) {
 
 func TestConfigIsSelected(t *testing.T) {
 	empty := ps.Config{
-		Version: "", IgnoreReadme: false, IgnoreTaskfile: false, IgnoreEnvrc: false,
+		Version: "", IgnoreReadme: false, IgnoreTaskfile: false,
 		Includes: nil, Excludes: nil, Powerpacks: nil,
 	}
 	assert.True(t, empty.IsSelected("anything"), "no selection installs everything")
 	assert.True(t, empty.SelectsAll())
 
 	named := ps.Config{
-		Version: "", IgnoreReadme: false, IgnoreTaskfile: false, IgnoreEnvrc: false,
+		Version: "", IgnoreReadme: false, IgnoreTaskfile: false,
 		Includes: []string{"git"}, Excludes: nil, Powerpacks: nil,
 	}
 	assert.True(t, named.IsSelected("git"))

@@ -1,0 +1,3 @@
+description: License file generation
+owns:
+  - path: LICENSE.md

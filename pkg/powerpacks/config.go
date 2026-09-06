@@ -22,14 +22,19 @@ var ErrConfigNotFound = errors.New("no tk configuration found, run `tk init` fir
 // Includes is an allow list: leaving it empty installs every powerpack, naming some
 // installs only those. Excludes is the deny list tk used before; it is still read so an
 // existing project keeps working, and the next write converts it into Includes.
+//
+// Generated records the files tk put outside `.tk/` and what it wrote there, so it can
+// tell an untouched file from one the project has since edited. Migrations records the
+// clean ups that already ran, so each one runs once.
 type Config struct {
 	Version        string            `yaml:"version,omitempty"`
 	IgnoreReadme   bool              `yaml:"ignore_readme"`
 	IgnoreTaskfile bool              `yaml:"ignore_taskfile"`
-	IgnoreEnvrc    bool              `yaml:"ignore_envrc"`
 	Includes       []string          `yaml:"includes,omitempty"`
 	Excludes       []string          `yaml:"excludes,omitempty"`
 	Powerpacks     map[string]string `yaml:"powerpacks,omitempty"`
+	Generated      map[string]string `yaml:"generated,omitempty"`
+	Migrations     []string          `yaml:"migrations,omitempty"`
 }
 
 // LoadConfig reads the tk configuration of a project, reporting ErrConfigNotFound when

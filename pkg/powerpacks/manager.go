@@ -2,6 +2,8 @@ package powerpacks
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -51,6 +53,8 @@ var (
 	ErrUnknownPowerpack = errors.New("unknown powerpack")
 	// ErrEmptySelection is reported when a change would leave the project with none.
 	ErrEmptySelection = errors.New("a project must keep at least one powerpack")
+	// ErrRequiredPowerpack is reported when removing a powerpack another one needs.
+	ErrRequiredPowerpack = errors.New("powerpack is required by another")
 )
 
 // Action tells what a Change does to a file.
@@ -79,6 +83,10 @@ type Plan struct {
 	Target  string
 	Config  Config
 	Changes []Change
+
+	// Notes are the things tk will not do on its own: files a removed powerpack left
+	// behind, and files it wrote that the project has since edited.
+	Notes []string
 }
 
 // Pending returns the changes that are not already satisfied on disk.
@@ -172,17 +180,64 @@ func (m *Manager) List() []Powerpack {
 	return list
 }
 
-// Selected returns the powerpacks a configuration installs, sorted by name.
+// Selected returns the powerpacks a configuration installs, sorted by name. A powerpack
+// pulls in whatever it requires, so a selection cannot install something half wired.
 func (m *Manager) Selected(config Config) []Powerpack {
-	selected := make([]Powerpack, 0, len(m.powerpacks))
+	wanted := map[string]bool{}
 
 	for _, powerpack := range m.List() {
 		if config.IsSelected(powerpack.Name) {
+			m.require(powerpack.Name, wanted)
+		}
+	}
+
+	selected := make([]Powerpack, 0, len(wanted))
+
+	for _, powerpack := range m.List() {
+		if wanted[powerpack.Name] {
 			selected = append(selected, powerpack)
 		}
 	}
 
 	return selected
+}
+
+// require marks a powerpack and everything it needs, tolerating a requirement cycle.
+func (m *Manager) require(name string, wanted map[string]bool) {
+	if wanted[name] {
+		return
+	}
+
+	powerpack, ok := m.powerpacks[name]
+	if !ok {
+		return
+	}
+
+	wanted[name] = true
+
+	for _, required := range powerpack.Requires() {
+		m.require(required, wanted)
+	}
+}
+
+// IsInstalled reports whether a powerpack ends up in the project, whether the selection
+// named it or another powerpack pulled it in. Config.IsSelected only knows what was
+// named, so it is the manager that has the last word.
+func (m *Manager) IsInstalled(config Config, name string) bool {
+	return slices.ContainsFunc(m.Selected(config), func(powerpack Powerpack) bool { return powerpack.Name == name })
+}
+
+// RequiredBy returns the selected powerpacks that need the given one.
+func (m *Manager) RequiredBy(config Config, name string) []string {
+	dependents := []string{}
+
+	for _, powerpack := range m.Selected(config) {
+		if powerpack.Name != name && slices.Contains(powerpack.Requires(), name) {
+			dependents = append(dependents, powerpack.Name)
+		}
+	}
+
+	return dependents
 }
 
 // Enable adds powerpacks to the selection and reports the names it changed. A project
@@ -195,7 +250,7 @@ func (m *Manager) Enable(config *Config, names ...string) []string {
 	changed := make([]string, 0, len(names))
 
 	for _, name := range names {
-		if config.IsSelected(name) {
+		if m.IsInstalled(*config, name) {
 			continue
 		}
 
@@ -217,10 +272,21 @@ func (m *Manager) Enable(config *Config, names ...string) []string {
 // project that installs everything gets the list written out first, since dropping one
 // powerpack is exactly what turns the implicit selection into an explicit one.
 func (m *Manager) Disable(config *Config, names ...string) ([]string, error) {
-	if len(config.Includes) == 0 {
-		config.Includes = powerpackNames(m.Selected(*config))
-		config.Excludes = nil
+	for _, name := range names {
+		if !m.IsInstalled(*config, name) {
+			continue
+		}
+
+		if dependents := m.RequiredBy(*config, name); len(dependents) > 0 {
+			return nil, fmt.Errorf("%w: %s is required by %s, remove %s first",
+				ErrRequiredPowerpack, name, strings.Join(dependents, ", "), strings.Join(dependents, " and "))
+		}
 	}
+
+	// Write the effective selection out before removing from it: what a project installs
+	// is what it named plus what those powerpacks require, and both have to survive.
+	config.Includes = powerpackNames(m.Selected(*config))
+	config.Excludes = nil
 
 	changed := make([]string, 0, len(names))
 
@@ -276,7 +342,9 @@ func (m *Manager) Validate(names ...string) error {
 	return nil
 }
 
-// Plan computes the changes needed in target without writing anything.
+// Plan computes the changes needed in target without writing anything. It runs in three
+// steps: the migrations the project has not seen yet, the files the powerpacks want, and
+// the files a powerpack no longer selected left behind.
 func (m *Manager) Plan(target string, config Config) (*Plan, error) {
 	config = m.normalize(config)
 	selected := m.Selected(config)
@@ -286,17 +354,172 @@ func (m *Manager) Plan(target string, config Config) (*Plan, error) {
 		config.Powerpacks[selected[i].Name] = selected[i].Checksum()
 	}
 
-	desired, err := desiredFiles(target, config, selected)
+	migrated, applied, err := migrate(target, m.pending(config))
 	if err != nil {
 		return nil, err
 	}
 
-	changes, err := diff(target, desired)
+	config.Migrations = append(config.Migrations, applied...)
+	slices.Sort(config.Migrations)
+
+	staged := index(migrated)
+
+	owned, notes, err := m.ownedFiles(target, config, selected, staged)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Plan{Target: target, Config: config, Changes: changes}, nil
+	config.Generated = generated(owned)
+
+	desired, err := desiredFiles(target, config, selected, staged)
+	if err != nil {
+		return nil, err
+	}
+
+	changes, err := diff(target, combine(migrated, owned, desired))
+	if err != nil {
+		return nil, err
+	}
+
+	return &Plan{Target: target, Config: config, Changes: changes, Notes: notes}, nil
+}
+
+// ownedFiles reconciles what the powerpacks declare they own outside of `.tk/`: files tk
+// writes itself are kept in step and removed with their powerpack, while files a task
+// generates are only reported, since tk never wrote their content and cannot know
+// whether removing them is what the project wants.
+func (m *Manager) ownedFiles(target string, config Config, selected []Powerpack, staged map[string]file,
+) ([]file, []string, error) {
+	files := []file{}
+	notes := []string{}
+	claimed := map[string]bool{}
+	known := map[string]bool{}
+
+	for _, powerpack := range m.List() {
+		for _, owned := range powerpack.Owns() {
+			known[owned.Path] = true
+		}
+	}
+
+	for i := range selected {
+		for _, owned := range selected[i].Owns() {
+			claimed[owned.Path] = true
+
+			if owned.strategy() != StrategySync {
+				continue
+			}
+
+			files = append(files, file{path: owned.Path, content: selected[i].Sources[owned.Source], absent: false})
+		}
+	}
+
+	for _, powerpack := range m.List() {
+		if config.IsSelected(powerpack.Name) {
+			continue
+		}
+
+		orphans, removals, err := orphaned(target, &powerpack, claimed, config, staged)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		notes = append(notes, orphans...)
+		files = append(files, removals...)
+	}
+
+	forgotten, err := forgottenFiles(target, config, known, staged)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return files, append(notes, forgotten...), nil
+}
+
+// orphaned looks at what a powerpack that is no longer installed left in the project.
+func orphaned(target string, powerpack *Powerpack, claimed map[string]bool, config Config, staged map[string]file,
+) ([]string, []file, error) {
+	notes := []string{}
+	removals := []file{}
+
+	for _, owned := range powerpack.Owns() {
+		if claimed[owned.Path] {
+			continue
+		}
+
+		current, found, err := readThrough(target, owned.Path, staged)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		if !found {
+			continue
+		}
+
+		switch {
+		case owned.strategy() != StrategySync:
+			notes = append(notes, fmt.Sprintf("%s is not installed but %s is still there, written by its tasks; "+
+				"remove it by hand if the project no longer wants it", powerpack.Name, owned.Path))
+		case config.Generated[owned.Path] != checksum(current):
+			notes = append(notes, fmt.Sprintf("%s is not installed but %s is still there and was edited since tk "+
+				"wrote it, so it is left alone", powerpack.Name, owned.Path))
+		default:
+			removals = append(removals, file{path: owned.Path, content: nil, absent: true})
+		}
+	}
+
+	return notes, removals, nil
+}
+
+// forgottenFiles reports the files a previous run recorded that no powerpack declares
+// anymore, which is what happens when a powerpack stops shipping a file or disappears
+// from tk entirely. Files a powerpack still declares are handled by ownership.
+func forgottenFiles(target string, config Config, known map[string]bool, staged map[string]file) ([]string, error) {
+	notes := []string{}
+
+	for _, path := range sortedKeys(config.Generated) {
+		if known[path] {
+			continue
+		}
+
+		found, err := exists(target, path, staged)
+		if err != nil {
+			return nil, err
+		}
+
+		if !found {
+			continue
+		}
+
+		notes = append(notes, fmt.Sprintf("%s was written by tk and is no longer claimed by any powerpack; "+
+			"remove it by hand if the project no longer wants it", path))
+	}
+
+	return notes, nil
+}
+
+// exists reports whether a file is there once the migrations have run.
+func exists(target, name string, staged map[string]file) (bool, error) {
+	_, found, err := readThrough(target, name, staged)
+
+	return found, err
+}
+
+// generated records what tk wrote outside of `.tk/`, so a later run can tell an untouched
+// file from one the project edited.
+func generated(owned []file) map[string]string {
+	recorded := map[string]string{}
+
+	for _, f := range owned {
+		if !f.absent {
+			recorded[f.path] = checksum(f.content)
+		}
+	}
+
+	if len(recorded) == 0 {
+		return nil
+	}
+
+	return recorded
 }
 
 // Write plans the changes and applies them, returning what was done.
@@ -311,6 +534,48 @@ func (m *Manager) Write(target string, config Config) (*Plan, error) {
 	}
 
 	return plan, nil
+}
+
+// index keys files by path, for the readers that need to see them before they are written.
+func index(files []file) map[string]file {
+	staged := make(map[string]file, len(files))
+	for _, f := range files {
+		staged[f.path] = f
+	}
+
+	return staged
+}
+
+// combine merges file lists, the later ones winning: a powerpack decides what a file it
+// owns holds, whatever a migration left there.
+func combine(lists ...[]file) []file {
+	merged := map[string]file{}
+
+	for _, list := range lists {
+		for _, f := range list {
+			merged[f.path] = f
+		}
+	}
+
+	return sortedFiles(merged)
+}
+
+// sortedFiles returns files in a stable order, so a report reads the same way twice.
+func sortedFiles(files map[string]file) []file {
+	sorted := make([]file, 0, len(files))
+	for _, name := range sortedKeys(files) {
+		sorted = append(sorted, files[name])
+	}
+
+	return sorted
+}
+
+// checksum digests the content tk wrote, so a later run can tell whether the project
+// edited it.
+func checksum(content []byte) string {
+	hash := sha256.Sum256(content)
+
+	return "sha256:" + hex.EncodeToString(hash[:])
 }
 
 // powerpackNames returns the name of each powerpack of a list.
@@ -332,7 +597,7 @@ type file struct {
 }
 
 // desiredFiles renders every file tk is responsible for, in a stable order.
-func desiredFiles(target string, config Config, selected []Powerpack) ([]file, error) {
+func desiredFiles(target string, config Config, selected []Powerpack, staged map[string]file) ([]file, error) {
 	files := make([]file, 0, 2*len(selected)+3) //nolint:mnd // two files per powerpack plus the shared three
 
 	for i := range selected {
@@ -352,23 +617,12 @@ func desiredFiles(target string, config Config, selected []Powerpack) ([]file, e
 	}
 
 	if !config.IgnoreTaskfile {
-		taskfile, err := rootTaskfile(target, selected)
+		taskfile, err := rootTaskfile(target, selected, staged)
 		if err != nil {
 			return nil, err
 		}
 
 		files = append(files, taskfile)
-	}
-
-	if !config.IgnoreEnvrc {
-		current, _, err := readFile(filepath.Join(target, EnvrcFilename))
-		if err != nil {
-			return nil, err
-		}
-
-		// tk no longer writes anything to .envrc; what is left is what the user wrote.
-		merged := MergeEnvrc(string(current))
-		files = append(files, file{path: EnvrcFilename, content: []byte(merged), absent: merged == ""})
 	}
 
 	content, err := config.marshal()
@@ -380,7 +634,7 @@ func desiredFiles(target string, config Config, selected []Powerpack) ([]file, e
 }
 
 // rootTaskfile merges the powerpack includes into the Taskfile the user owns.
-func rootTaskfile(target string, selected []Powerpack) (file, error) {
+func rootTaskfile(target string, selected []Powerpack, staged map[string]file) (file, error) {
 	includes := map[string]string{}
 
 	for i := range selected {
@@ -394,7 +648,7 @@ func rootTaskfile(target string, selected []Powerpack) (file, error) {
 		return file{}, err //nolint:exhaustruct // the error is what matters
 	}
 
-	current, _, err := readFile(filepath.Join(target, name))
+	current, _, err := readThrough(target, name, staged)
 	if err != nil {
 		return file{}, err //nolint:exhaustruct // the error is what matters
 	}

@@ -1,0 +1,3 @@
+description: Go build, test and coverage tasks
+owns:
+  - path: .github/workflows/go.yml

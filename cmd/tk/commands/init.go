@@ -1,37 +1,76 @@
 package commands
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/merlindorin/go-shared/pkg/cmd"
+
 	ps "github.com/merlindorin/tk/pkg/powerpacks"
-	"github.com/merlindorin/tk/powerpacks"
 )
 
+// InitCmd installs tk in a project for the first time.
 type InitCmd struct {
-	Target string `help:"target where to init tk" default:"."`
+	mutation
 
-	Exclude []string `help:"exclude powerpacks" optional:""`
+	Include []string `help:"powerpacks to install; every one of them when left out" optional:""`
 
-	DisableEnvrc     bool `default:"false" help:"disable envrc"`
-	DisableTaskfiles bool `default:"false" help:"disable taskfiles"`
-	DisableReadme    bool
+	DisableEnvrc     bool `help:"do not manage .envrc"`
+	DisableTaskfiles bool `help:"do not manage Taskfiles"`
+	DisableReadme    bool `help:"do not write the powerpack documentation"`
 }
 
-func (i *InitCmd) Run(_ *cmd.Commons) error {
-	manager, err := powerpacks.BuildPowerpackManager()
+// Run initialises the project and reports the changes.
+func (i *InitCmd) Run(commons *cmd.Commons) error {
+	manager, err := i.manager()
 	if err != nil {
-		return fmt.Errorf("failed to create powerpacks: %w", err)
+		return err
 	}
 
-	opts := ps.WriteOption{
-		IgnoreTaskfile: i.DisableTaskfiles,
+	if err = manager.Validate(i.Include...); err != nil {
+		return err
+	}
+
+	if err = i.warnOnReinit(); err != nil {
+		return err
+	}
+
+	config := ps.Config{
+		Version:        version(commons),
 		IgnoreReadme:   i.DisableReadme,
-		Excludes:       i.Exclude,
+		IgnoreTaskfile: i.DisableTaskfiles,
+		IgnoreEnvrc:    i.DisableEnvrc,
+		Includes:       i.Include,
+		Excludes:       nil,
+		Powerpacks:     nil,
 	}
 
-	if er := manager.Write(".", opts); er != nil {
-		return fmt.Errorf("failed to write powerpacks: %w", er)
+	return i.run(manager, config)
+}
+
+// warnOnReinit tells the user when an existing configuration is about to be replaced,
+// since `tk init` rebuilds it from the flags rather than from what the project had.
+func (i *InitCmd) warnOnReinit() error {
+	config, err := ps.LoadConfig(i.Target)
+	if errors.Is(err, ps.ErrConfigNotFound) {
+		return nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	if _, err = fmt.Fprintf(i.writer(),
+		"%s already exists and is being replaced; use `tk update`, `tk add` or `tk remove` to keep it\n",
+		ps.ConfigFilename); err != nil {
+		return fmt.Errorf("failed to report changes: %w", err)
+	}
+
+	if !config.SelectsAll() && len(i.Include) == 0 {
+		if _, err = fmt.Fprintf(i.writer(), "installing every powerpack, it selected only: %v\n",
+			selection(&config)); err != nil {
+			return fmt.Errorf("failed to report changes: %w", err)
+		}
 	}
 
 	return nil

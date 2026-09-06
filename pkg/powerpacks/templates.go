@@ -1,15 +1,15 @@
 package powerpacks
 
+// Marker flags every line tk owns in a file it shares with the user (the root
+// Taskfile.yaml includes and .envrc). Lines without it are never touched.
+const Marker = "#!tk"
+
 const (
-	envrcTemplate    = `export TASK_X_REMOTE_TASKFILES=1`
-	taskfileTemplate = `version: '3'
+	envrcExport = "export TASK_X_REMOTE_TASKFILES=1"
 
-includes:
-    {{ range $name, $filename := . }}
-        {{- $name }}: {{ $filename }}
-    {{end}}
-
-dotenv:
+	taskfileVersion = "version: '3'"
+	taskfileHeader  = "includes:"
+	taskfileFooter  = `dotenv:
   - .env
   - PROJECT
   - .env.default`

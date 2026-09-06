@@ -7,7 +7,6 @@ import (
 	"github.com/merlindorin/go-shared/pkg/cmd"
 
 	"github.com/merlindorin/tk/cmd/tk/commands"
-	"github.com/merlindorin/tk/cmd/tk/global"
 )
 
 //nolint:gochecknoglobals // these global variables exist to be overridden during build
@@ -25,10 +24,12 @@ type CLI struct {
 	*cmd.Commons
 	*cmd.Config
 
-	*global.TK
-
 	Init   commands.InitCmd   `cmd:"init" help:"initialize a new workspace"`
 	Update commands.UpdateCmd `cmd:"update" help:"update workspace"`
+	Status commands.StatusCmd `cmd:"status" help:"report how the workspace differs from the powerpacks"`
+	List   commands.ListCmd   `cmd:"list" aliases:"ls" help:"list the available powerpacks"`
+	Add    commands.AddCmd    `cmd:"add" help:"install powerpacks in the workspace"`
+	Remove commands.RemoveCmd `cmd:"remove" aliases:"rm" help:"remove powerpacks from the workspace"`
 }
 
 func main() {
@@ -38,7 +39,6 @@ func main() {
 			Licence: cmd.NewLicence(license),
 		},
 		Config: cmd.NewConfig(name),
-		TK:     &global.TK{},
 	}
 
 	ctx := kong.Parse(
@@ -48,5 +48,5 @@ func main() {
 		kong.UsageOnError(),
 	)
 
-	ctx.FatalIfErrorf(ctx.Run(cli.TK, cli.Commons))
+	ctx.FatalIfErrorf(ctx.Run(cli.Commons))
 }

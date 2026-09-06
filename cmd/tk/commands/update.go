@@ -1,43 +1,29 @@
 package commands
 
 import (
-	"bytes"
-	"fmt"
-	"os"
-	"path/filepath"
+	"github.com/merlindorin/go-shared/pkg/cmd"
 
 	ps "github.com/merlindorin/tk/pkg/powerpacks"
-	"github.com/merlindorin/tk/powerpacks"
-	"gopkg.in/yaml.v3"
-
-	"github.com/merlindorin/go-shared/pkg/cmd"
 )
 
+// UpdateCmd refreshes a project from the powerpacks embedded in the binary.
 type UpdateCmd struct {
-	Target string `help:"target where to init tk" default:"."`
+	mutation
 }
 
-func (i *UpdateCmd) Run(_ *cmd.Commons) error {
-	manager, err := powerpacks.BuildPowerpackManager()
+// Run updates the project and reports the changes.
+func (u *UpdateCmd) Run(commons *cmd.Commons) error {
+	manager, err := u.manager()
 	if err != nil {
-		return fmt.Errorf("failed to create powerpacks: %w", err)
+		return err
 	}
 
-	f, err := os.ReadFile(filepath.Join(i.Target, ".tk.yaml"))
+	config, err := ps.LoadConfig(u.Target)
 	if err != nil {
-		return fmt.Errorf("failed to read .tk.yaml: %w", err)
+		return err
 	}
 
-	opts := ps.WriteOption{}
+	config.Version = version(commons)
 
-	err = yaml.NewDecoder(bytes.NewBuffer(f)).Decode(&opts)
-	if err != nil {
-		return fmt.Errorf("failed to parse .tk.yaml: %w", err)
-	}
-
-	if er := manager.Write(".", opts); er != nil {
-		return fmt.Errorf("failed to updates powerpacks: %w", er)
-	}
-
-	return nil
+	return u.run(manager, config)
 }

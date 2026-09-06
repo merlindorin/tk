@@ -27,9 +27,11 @@ jobs:
         with:
           go-version-file: go.mod
           cache: true
-      - uses: sigstore/cosign-installer@v4             # installs cosign
+      # These are pinned to exact versions: neither cosign-installer nor
+      # login-action publishes a moving major tag. Dependabot bumps them.
+      - uses: sigstore/cosign-installer@v4.1.2          # installs cosign
       - uses: anchore/sbom-action/download-syft@v0.24.2 # installs syft
-      - uses: docker/login-action@v4                   # login to ghcr
+      - uses: docker/login-action@v4.6.0                # login to ghcr
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}

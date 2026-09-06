@@ -579,9 +579,11 @@ tasks:
                   registry: ghcr.io
                   username: ${{ "{{ github.repository_owner }}" }}
                   password: ${{ "{{ secrets.GITHUB_TOKEN }}" }}
-              - uses: goreleaser/goreleaser-action@v5          # run goreleaser
+              - uses: goreleaser/goreleaser-action@v6          # run goreleaser
                 with:
-                  version: latest
+                  # v6 defaults to goreleaser v2, which is what `version: 2` in
+                  # .goreleaser.yaml requires; `latest` would lock back to v1
+                  version: '~> v2'
                   args: release --clean
                 env:
                   GITHUB_TOKEN: ${{ "{{ secrets.GITHUB_TOKEN }}" }}

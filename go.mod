@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/alecthomas/assert/v2 v2.11.0
-	github.com/alecthomas/kong v0.9.0
+	github.com/alecthomas/kong v1.16.1
 	github.com/merlindorin/go-shared v0.0.0-20251229120347-f6f1097953a6
 	gopkg.in/yaml.v3 v3.0.1
 )
